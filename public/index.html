@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PolyGlot IDE</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' stop-color='%2338bdf8'/><stop offset='50%' stop-color='%23818cf8'/><stop offset='100%' stop-color='%23c084fc'/></linearGradient></defs><rect width='32' height='32' rx='8' fill='%23161b22'/><path d='M10 9L6 16l4 7M22 9l4 7-4 7M18 7l-4 18' stroke='url(%23g)' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round' fill='none'/></svg>">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -11,8 +12,27 @@
   <!-- Title Bar -->
   <div class="titlebar">
     <div class="titlebar-left">
-      <span class="logo">◈</span>
-      <span class="title">PolyGlot IDE</span>
+      <div class="logo-wrapper">
+        <svg class="logo-svg" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="polyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#38bdf8"/>
+              <stop offset="50%" stop-color="#818cf8"/>
+              <stop offset="100%" stop-color="#c084fc"/>
+            </linearGradient>
+            <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+              <feDropShadow dx="0" dy="0" stdDeviation="2" flood-color="#818cf8" flood-opacity="0.5"/>
+            </filter>
+          </defs>
+          <rect width="32" height="32" rx="7" fill="#1f242d"/>
+          <g filter="url(#glow)">
+            <path d="M10 10L5.5 16L10 22" stroke="url(#polyGrad)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M22 10L26.5 16L22 22" stroke="url(#polyGrad)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M18.5 8L13.5 24" stroke="url(#polyGrad)" stroke-width="2.2" stroke-linecap="round"/>
+          </g>
+        </svg>
+      </div>
+      <span class="title">PolyGlot <span class="badge-ide">IDE</span></span>
     </div>
     <div class="titlebar-right">
       <span class="shortcut-hint">Ctrl+Enter to run</span>

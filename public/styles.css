@@ -50,16 +50,44 @@ body {
   gap: 8px;
 }
 
-.logo {
-  font-size: 18px;
-  color: var(--accent);
+.logo-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logo-svg {
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.25);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.logo-svg:hover {
+  transform: rotate(5deg) scale(1.08);
+  box-shadow: 0 0 14px rgba(129, 140, 248, 0.45);
 }
 
 .title {
   font-size: 13px;
-  font-weight: 600;
-  color: var(--text-dim);
-  letter-spacing: 0.3px;
+  font-weight: 700;
+  color: #f0f6fc;
+  letter-spacing: 0.4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.badge-ide {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: linear-gradient(135deg, #38bdf8, #818cf8);
+  color: #0b0f17;
+  text-transform: uppercase;
 }
 
 .titlebar-right {
