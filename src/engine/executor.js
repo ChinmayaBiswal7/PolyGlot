@@ -66,8 +66,30 @@ if os.path.exists(_shared_file):
     except Exception:
         pass
 
+# --- Headless Matplotlib Support for Data Science & ML ---
+try:
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+except Exception:
+    pass
+
 # --- User Code ---
 ${cleanCode}
+
+# --- Auto Plot Extractor for ML / Data Science ---
+try:
+    import matplotlib.pyplot as _plt
+    if _plt.get_fignums():
+        import io as _io, base64 as _b64
+        _buf = _io.BytesIO()
+        _plt.savefig(_buf, format='png', bbox_inches='tight', dpi=110)
+        _buf.seek(0)
+        _plot_b64 = _b64.b64encode(_buf.read()).decode('utf-8')
+        print("__POLYGLOT_PLOT__:" + _plot_b64)
+        _plt.close('all')
+except Exception:
+    pass
 
 # --- Export Variables ---
 _export = {}
@@ -556,7 +578,31 @@ async function executePython(code, stdin = '') {
   fs.writeFileSync(file, wrapped, 'utf8');
   const pyCmd = process.platform === 'win32' ? 'python -B' : 'python3 -B';
   const r = await run(`${pyCmd} "${file}"`, stdin);
-  return { output: r.stdout.trim(), error: r.exitCode ? r.stderr.trim() : null };
+
+  let rawOut = r.stdout;
+  let plot = null;
+  let chart = null;
+
+  const plotMatch = rawOut.match(/__POLYGLOT_PLOT__:([A-Za-z0-9+/=]+)/);
+  if (plotMatch) {
+    plot = plotMatch[1];
+    rawOut = rawOut.replace(/__POLYGLOT_PLOT__:[A-Za-z0-9+/=]+/, '');
+  }
+
+  const chartMatch = rawOut.match(/__POLYGLOT_CHART__:(\{.*?\})/);
+  if (chartMatch) {
+    try {
+      chart = JSON.parse(chartMatch[1]);
+      rawOut = rawOut.replace(/__POLYGLOT_CHART__:\{.*?\}/, '');
+    } catch (e) {}
+  }
+
+  return {
+    output: rawOut.trim(),
+    error: r.exitCode ? r.stderr.trim() : null,
+    plot,
+    chart
+  };
 }
 
 async function executeJavaScript(code, stdin = '') {
@@ -708,8 +754,15 @@ async function executeCode(code, stdin = '', filename = '') {
 
     try {
       const codeText = block.lines.join('\n');
-      const { output, error } = await executor(codeText, stdin);
-      results.push({ language: block.language, lines: block.originalLineNumbers, output, error });
+      const res = await executor(codeText, stdin);
+      results.push({
+        language: block.language,
+        lines: block.originalLineNumbers,
+        output: res.output,
+        error: res.error,
+        plot: res.plot || null,
+        chart: res.chart || null
+      });
     } catch (e) {
       results.push({ language: block.language, lines: block.originalLineNumbers, output: '', error: e.message });
     }
@@ -720,7 +773,10 @@ async function executeCode(code, stdin = '', filename = '') {
     .filter(Boolean)
     .join('\n');
 
-  return { results, output, detectedLines };
+  const plot = results.find(r => r.plot)?.plot || null;
+  const chart = results.find(r => r.chart)?.chart || null;
+
+  return { results, output, detectedLines, plot, chart };
 }
 
 module.exports = { executeCode };

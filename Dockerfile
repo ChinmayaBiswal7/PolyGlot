@@ -21,6 +21,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     lld \
     python3 \
     python-is-python3 \
+    python3-matplotlib \
+    sqlite3 \
     golang-go \
     rustc \
     default-jdk-headless \

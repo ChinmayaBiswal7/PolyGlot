@@ -6,6 +6,8 @@
   <title>PolyGlot IDE</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' stop-color='%2338bdf8'/><stop offset='50%' stop-color='%23818cf8'/><stop offset='100%' stop-color='%23c084fc'/></linearGradient></defs><rect width='32' height='32' rx='8' fill='%23161b22'/><path d='M10 9L6 16l4 7M22 9l4 7-4 7M18 7l-4 18' stroke='url(%23g)' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round' fill='none'/></svg>">
   <link rel="stylesheet" href="styles.css">
+  <!-- Chart.js for Interactive ML & Data Science Visuals -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
@@ -41,7 +43,7 @@
       <span class="title">PolyGlot <span class="badge-ide">IDE</span></span>
     </div>
     <div class="titlebar-right">
-      <span class="shortcut-hint">Ctrl+Enter to run · Ctrl+B for files</span>
+      <span class="shortcut-hint">Ctrl+Enter to run · Ctrl+B for sidebar</span>
     </div>
   </div>
 
@@ -50,19 +52,131 @@
 
     <!-- Collapsible VS Code style Explorer Sidebar -->
     <aside class="sidebar" id="sidebar">
-      <div class="sidebar-header">
-        <span class="sidebar-title">EXPLORER</span>
-        <div class="sidebar-actions">
-          <button class="icon-btn" id="newFileBtn" title="New File">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
-          </button>
-          <button class="icon-btn" id="newFolderBtn" title="New Folder">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path><line x1="12" y1="11" x2="12" y2="17"></line><line x1="9" y1="14" x2="15" y2="14"></line></svg>
-          </button>
+      <!-- Activity Switcher Bar -->
+      <div class="sidebar-activity-bar">
+        <button class="activity-btn active" id="actFilesBtn" title="File Explorer">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+          <span>Files</span>
+        </button>
+        <button class="activity-btn" id="actExtensionsBtn" title="Extensions & Engines">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+          <span>Extensions</span>
+        </button>
+        <button class="activity-btn" id="actDbBtn" title="SQLite Database Studio">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
+          <span>Database</span>
+        </button>
+      </div>
+
+      <!-- File Explorer View -->
+      <div class="sidebar-section active" id="filesSection">
+        <div class="sidebar-header">
+          <span class="sidebar-title">EXPLORER</span>
+          <div class="sidebar-actions">
+            <button class="icon-btn" id="newFileBtn" title="New File">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+            </button>
+            <button class="icon-btn" id="newFolderBtn" title="New Folder">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path><line x1="12" y1="11" x2="12" y2="17"></line><line x1="9" y1="14" x2="15" y2="14"></line></svg>
+            </button>
+          </div>
+        </div>
+        <div class="file-tree" id="fileTree"></div>
+      </div>
+
+      <!-- Extensions & Pre-installed Engines View -->
+      <div class="sidebar-section" id="extensionsSection" style="display: none;">
+        <div class="sidebar-header">
+          <span class="sidebar-title">BUILT-IN EXTENSIONS</span>
+        </div>
+        <div class="extensions-list" id="extensionsList">
+          <div class="extension-card">
+            <div class="ext-icon">📊</div>
+            <div class="ext-info">
+              <div class="ext-name">Data Science & ML Engine</div>
+              <div class="ext-desc">Matplotlib plots, chart renderer, NumPy & analytics</div>
+              <span class="ext-badge active">Active · Built-in</span>
+            </div>
+          </div>
+          <div class="extension-card">
+            <div class="ext-icon">🌐</div>
+            <div class="ext-info">
+              <div class="ext-name">Live Web Server & Preview</div>
+              <div class="ext-desc">Real-time HTML/CSS/JS sandbox runner</div>
+              <span class="ext-badge active">Active · Built-in</span>
+            </div>
+          </div>
+          <div class="extension-card">
+            <div class="ext-icon">🗄️</div>
+            <div class="ext-info">
+              <div class="ext-name">SQLite Database Studio</div>
+              <div class="ext-desc">Visual query runner, table inspector & schema manager</div>
+              <span class="ext-badge active">Active · Built-in</span>
+            </div>
+          </div>
+          <div class="extension-card">
+            <div class="ext-icon">🐍</div>
+            <div class="ext-info">
+              <div class="ext-name">Python 3 Runtime</div>
+              <div class="ext-desc">Headless Agg backend, globals bridge, OOP & functional</div>
+              <span class="ext-badge active">Active · Built-in</span>
+            </div>
+          </div>
+          <div class="extension-card">
+            <div class="ext-icon">⚡</div>
+            <div class="ext-info">
+              <div class="ext-name">GCC & G++ Compiler</div>
+              <div class="ext-desc">C & C++20 with instant TCC in-memory compilation</div>
+              <span class="ext-badge active">Active · Built-in</span>
+            </div>
+          </div>
+          <div class="extension-card">
+            <div class="ext-icon">☕</div>
+            <div class="ext-info">
+              <div class="ext-name">Java OpenJDK 22</div>
+              <div class="ext-desc">Fast in-memory single-file executor & custom classes</div>
+              <span class="ext-badge active">Active · Built-in</span>
+            </div>
+          </div>
+          <div class="extension-card">
+            <div class="ext-icon">🦀</div>
+            <div class="ext-info">
+              <div class="ext-name">Rust 1.99 Toolchain</div>
+              <div class="ext-desc">Optimized 16-unit codegen for high speed execution</div>
+              <span class="ext-badge active">Active · Built-in</span>
+            </div>
+          </div>
+          <div class="extension-card">
+            <div class="ext-icon">🐹</div>
+            <div class="ext-info">
+              <div class="ext-name">Go 1.22 Runtime</div>
+              <div class="ext-desc">Cached goroutines, channels, and structs</div>
+              <span class="ext-badge active">Active · Built-in</span>
+            </div>
+          </div>
         </div>
       </div>
-      <!-- File Tree Container -->
-      <div class="file-tree" id="fileTree"></div>
+
+      <!-- Database Studio Sidebar View -->
+      <div class="sidebar-section" id="dbSidebarSection" style="display: none;">
+        <div class="sidebar-header">
+          <span class="sidebar-title">SQLITE DATABASE</span>
+          <button class="icon-btn" id="dbRunSideBtn" title="Run Query">▶</button>
+        </div>
+        <div class="db-sidebar-content">
+          <div class="db-query-box">
+            <textarea id="dbSqlInput" class="db-sql-textarea" placeholder="SELECT * FROM users;"></textarea>
+            <button class="db-exec-btn" id="dbExecBtn">Execute SQL</button>
+          </div>
+          <div class="db-tables-list">
+            <div class="db-subhead">TABLES</div>
+            <div id="dbTablesContainer" class="db-tables-items">
+              <span class="db-empty-hint">Run a CREATE TABLE query or open database/sales.sql to see tables.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </aside>
 
     <!-- Sidebar Resize Divider -->
@@ -102,7 +216,7 @@
       <!-- Terminal Resize Handle -->
       <div class="resize-handle" id="resizeHandle"></div>
 
-      <!-- Bottom Panel (Output & Stdin Tabs) -->
+      <!-- Bottom Panel (Output, Stdin, Web Preview, ML Graphs, Database Tabs) -->
       <div class="output-panel" id="outputPanel">
         <div class="output-header">
           <div class="panel-tabs">
@@ -115,15 +229,84 @@
               <span>Custom Input (stdin)</span>
               <span class="stdin-dot" id="stdinDot" style="display:none;" title="Input provided">●</span>
             </button>
+            <button class="panel-tab" id="tabWebPreviewBtn">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+              <span>Web Preview</span>
+            </button>
+            <button class="panel-tab" id="tabVisualsBtn">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+              <span>Visuals & Graphs</span>
+              <span class="visual-dot" id="visualDot" style="display:none;" title="New visual generated">●</span>
+            </button>
+            <button class="panel-tab" id="tabDbBtn">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
+              <span>Database Results</span>
+            </button>
           </div>
           <button class="output-clear" id="clearBtn">Clear</button>
         </div>
+
+        <!-- 1. Console Terminal Output -->
         <div class="output-content" id="outputContent">
           <span class="placeholder">Press ▶ Run or Ctrl+Enter to execute…</span>
         </div>
+
+        <!-- 2. Stdin Custom Input -->
         <div class="stdin-container" id="stdinContainer" style="display: none;">
           <textarea id="stdinInput" class="stdin-textarea" spellcheck="false" placeholder="Enter custom standard input (for scanf, scanner.nextLine(), input(), cin, etc.)..."></textarea>
         </div>
+
+        <!-- 3. Web Preview Container (Live Server replacement) -->
+        <div class="webpreview-container" id="webPreviewContainer" style="display: none;">
+          <div class="browser-bar">
+            <div class="browser-controls">
+              <span class="browser-dot red"></span>
+              <span class="browser-dot yellow"></span>
+              <span class="browser-dot green"></span>
+            </div>
+            <div class="browser-url" id="browserUrl">http://localhost/web/index.html</div>
+            <div class="browser-actions">
+              <button class="browser-btn" id="reloadPreviewBtn" title="Reload Preview">🔄</button>
+              <button class="browser-btn" id="openTabPreviewBtn" title="Open in new window">↗️</button>
+            </div>
+          </div>
+          <iframe id="previewIframe" class="preview-iframe" sandbox="allow-scripts allow-modals"></iframe>
+        </div>
+
+        <!-- 4. Visuals & ML Graphs Container -->
+        <div class="visuals-container" id="visualsContainer" style="display: none;">
+          <div class="visuals-toolbar">
+            <span class="visuals-title">Machine Learning & Data Science Plots</span>
+            <div class="visuals-actions">
+              <button class="visual-action-btn" id="downloadPlotBtn" style="display: none;">⬇ Download PNG</button>
+            </div>
+          </div>
+          <div class="visuals-body" id="visualsBody">
+            <div class="visuals-placeholder" id="visualsPlaceholder">
+              <div class="visuals-empty-icon">📊</div>
+              <p>No plot or visual chart generated yet.</p>
+              <p class="sub-hint">Run a Python script with <code>matplotlib.pyplot</code> or open <code>datascience/ml_training.py</code> to see live plots.</p>
+            </div>
+            <div class="plot-image-wrapper" id="plotImageWrapper" style="display: none;">
+              <img id="plotImage" class="plot-image" alt="Generated Python Plot">
+            </div>
+            <div class="chart-canvas-wrapper" id="chartCanvasWrapper" style="display: none;">
+              <canvas id="interactiveChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5. Database Studio Results -->
+        <div class="db-results-container" id="dbResultsContainer" style="display: none;">
+          <div id="dbOutputTable" class="db-table-wrapper">
+            <div class="visuals-placeholder">
+              <div class="visuals-empty-icon">🗄️</div>
+              <p>No query results yet.</p>
+              <p class="sub-hint">Open <code>database/sales.sql</code> or use the Database tab in the sidebar to execute SQL queries.</p>
+            </div>
+          </div>
+        </div>
+
       </div>
 
     </main>
