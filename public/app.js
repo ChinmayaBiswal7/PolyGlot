@@ -1473,11 +1473,41 @@ window.addEventListener('keydown', (e) => {
   }
 }, true);
 
+// Request browser fullscreen helper
+function requestInterviewFullscreen() {
+  const elem = document.documentElement;
+  if (elem.requestFullscreen) {
+    elem.requestFullscreen().catch(() => {});
+  } else if (elem.webkitRequestFullscreen) {
+    elem.webkitRequestFullscreen();
+  } else if (elem.msRequestFullscreen) {
+    elem.msRequestFullscreen();
+  }
+}
+
+// Re-enter fullscreen button click
+const proctorFullscreenBtn = document.getElementById('proctorFullscreenBtn');
+proctorFullscreenBtn?.addEventListener('click', () => {
+  requestInterviewFullscreen();
+});
+
+// Auto-lock fullscreen on any user click if fullscreen was dropped
+window.addEventListener('click', () => {
+  if (isPlacementMode && !document.fullscreenElement) {
+    requestInterviewFullscreen();
+  }
+});
+
 // Keep placement mode active even if browser exits OS fullscreen
 document.addEventListener('fullscreenchange', () => {
-  if (isPlacementMode && !document.fullscreenElement) {
-    // User exited OS fullscreen: retain interview mode layout and warn user
-    showAntiCheatToast('FULLSCREEN EXITED', 'Please stay focused. Click "End Test & Submit" when you are finished.');
+  const btn = document.getElementById('proctorFullscreenBtn');
+  if (isPlacementMode) {
+    if (!document.fullscreenElement) {
+      if (btn) btn.style.display = 'inline-block';
+      showAntiCheatToast('FULLSCREEN EXITED', 'Click anywhere or press "Re-enter Fullscreen" to resume locked test mode.');
+    } else {
+      if (btn) btn.style.display = 'none';
+    }
   }
 });
 
