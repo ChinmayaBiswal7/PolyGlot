@@ -78,9 +78,25 @@ app.post('/api/detect', (req, res) => {
   }
 });
 
+// ── Healthcheck & Keep-Alive to prevent cold starts ──
+app.get('/health', (req, res) => res.json({ status: 'ok', uptime: process.uptime() }));
+
 server.listen(PORT, () => {
   console.log('');
   console.log('  ◈  PolyGlot IDE is running with Real-Time Collaboration!');
   console.log(`  ➜  Open in browser: http://localhost:${PORT}`);
   console.log('');
+
+  // Keep Render container awake (Render sleeps after 15 minutes of inactivity)
+  const externalUrl = process.env.RENDER_EXTERNAL_URL;
+  if (externalUrl) {
+    console.log(`  ⚡ Keep-alive self-ping active for: ${externalUrl}`);
+    const https = require('https');
+    setInterval(() => {
+      https.get(`${externalUrl}/health`, (res) => {
+        // Self-ping to stay awake
+      }).on('error', () => {});
+    }, 12 * 60 * 1000); // Every 12 minutes
+  }
 });
+

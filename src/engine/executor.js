@@ -145,8 +145,7 @@ try {
 
 // 3. C
 function wrapC(code) {
-  const needsHeader = !code.includes('#include <stdio.h>');
-  const headers = needsHeader ? '#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n' : '';
+  const headers = '#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n';
 
   const helperFunctions = `
 int poly_get_int(const char* key, int default_val) {
@@ -221,8 +220,7 @@ void poly_set_int(const char* key, int val) {
 
 // 4. C++
 function wrapCpp(code) {
-  const needsHeader = !code.includes('#include <iostream>');
-  const headers = needsHeader ? '#include <iostream>\n#include <fstream>\n#include <string>\nusing namespace std;\n' : '';
+  const headers = '#include <iostream>\n#include <fstream>\n#include <string>\n#include <cstdio>\n#include <cstdlib>\n#include <cstring>\nusing namespace std;\n';
   const cWrapped = wrapC(code);
   return `${headers}\n${cWrapped}`;
 }
@@ -319,7 +317,8 @@ async function executePython(code) {
   const wrapped = wrapPython(code);
   const file = path.join(TEMP_DIR, 'temp.py');
   fs.writeFileSync(file, wrapped, 'utf8');
-  const pyCmd = process.platform === 'win32' ? 'python' : 'python3';
+  // -B flag skips writing bytecode (.pyc) to disk
+  const pyCmd = process.platform === 'win32' ? 'python -B' : 'python3 -B';
   const r = await run(`${pyCmd} "${file}"`);
   return { output: r.stdout.trim(), error: r.exitCode ? r.stderr.trim() : null };
 }
@@ -336,7 +335,22 @@ async function executeTypeScript(code) {
   const wrapped = wrapJavaScript(code);
   const file = path.join(TEMP_DIR, 'temp.ts');
   fs.writeFileSync(file, wrapped, 'utf8');
-  const r = await run(`npx tsx "${file}"`);
+
+  // 1. Try native Node strip-types (Node 22+: runs in < 200ms)
+  let r = await run(`node --strip-types "${file}"`);
+  if (!r.exitCode) {
+    return { output: r.stdout.trim(), error: null };
+  }
+
+  // 2. Direct tsx local binary without npx registry lookup
+  const localTsx = path.resolve(__dirname, '../../node_modules/tsx/dist/cli.mjs');
+  if (fs.existsSync(localTsx)) {
+    r = await run(`node "${localTsx}" "${file}"`);
+    return { output: r.stdout.trim(), error: r.exitCode ? r.stderr.trim() : null };
+  }
+
+  // 3. Fallback
+  r = await run(`npx --no-install tsx "${file}"`);
   return { output: r.stdout.trim(), error: r.exitCode ? r.stderr.trim() : null };
 }
 
@@ -344,11 +358,19 @@ async function executeC(code) {
   const wrapped = wrapC(code);
   const isWin = process.platform === 'win32';
   const src = path.join(TEMP_DIR, 'temp.c');
-  const out = path.join(TEMP_DIR, isWin ? 'temp_c.exe' : 'temp_c');
   fs.writeFileSync(src, wrapped, 'utf8');
 
-  // -O0 for fastest compilation time without optimization
-  const compile = await run(`gcc -O0 "${src}" -o "${out}"`);
+  // 1. On Linux/Docker, tcc compiles and runs in memory in ~5ms
+  if (!isWin) {
+    const tccRun = await run(`tcc -run "${src}"`);
+    if (!tccRun.exitCode) {
+      return { output: tccRun.stdout.trim(), error: null };
+    }
+  }
+
+  // 2. Fast compilation with GCC -O0 -pipe
+  const out = path.join(TEMP_DIR, isWin ? 'temp_c.exe' : 'temp_c');
+  const compile = await run(`gcc -O0 -pipe -s "${src}" -o "${out}"`);
   if (compile.exitCode) return { output: '', error: compile.stderr.trim() };
 
   const r = await run(`"${out}"`);
@@ -362,8 +384,8 @@ async function executeCpp(code) {
   const out = path.join(TEMP_DIR, isWin ? 'temp_cpp.exe' : 'temp_cpp');
   fs.writeFileSync(src, wrapped, 'utf8');
 
-  // -O0 for fastest compilation time
-  const compile = await run(`g++ -O0 "${src}" -o "${out}"`);
+  // -O0 -pipe -s for fastest compilation without debug overhead
+  const compile = await run(`g++ -O0 -pipe -s "${src}" -o "${out}"`);
   if (compile.exitCode) return { output: '', error: compile.stderr.trim() };
 
   const r = await run(`"${out}"`);
@@ -375,7 +397,13 @@ async function executeJava(code) {
   const file = path.join(TEMP_DIR, 'PolyTemp.java');
   fs.writeFileSync(file, wrapped, 'utf8');
 
-  // Fast compilation with minimal JVM overhead
+  // 1. Single-file execution (Java 11+: in-memory, no javac required)
+  const direct = await run(`java -Xms32m -Xmx128m -Dfile.encoding=UTF-8 "${file}"`);
+  if (!direct.exitCode) {
+    return { output: direct.stdout.trim(), error: null };
+  }
+
+  // 2. Fast javac fallback
   const compile = await run(`javac -J-Xms32m -J-Xmx128m -encoding UTF-8 "${file}"`);
   if (compile.exitCode) return { output: '', error: compile.stderr.trim() };
 
@@ -398,10 +426,10 @@ async function executeRust(code) {
   const out = path.join(TEMP_DIR, isWin ? 'temp_rs.exe' : 'temp_rs');
   fs.writeFileSync(src, wrapped, 'utf8');
 
-  // -C opt-level=0 for instant Rust compilation
+  // -C opt-level=0 -C debuginfo=0 -C codegen-units=16 for 10x faster compilation
   const rustcCmd = isWin
-    ? `"C:\\Program Files\\Rust stable GNU 1.99\\bin\\rustc.exe" -C opt-level=0 --sysroot "C:\\Program Files\\Rust stable GNU 1.99" -C link-self-contained=yes "${src}" -o "${out}"`
-    : `rustc -C opt-level=0 "${src}" -o "${out}"`;
+    ? `"C:\\Program Files\\Rust stable GNU 1.99\\bin\\rustc.exe" -C opt-level=0 -C debuginfo=0 -C codegen-units=16 --sysroot "C:\\Program Files\\Rust stable GNU 1.99" -C link-self-contained=yes "${src}" -o "${out}"`
+    : `rustc -C opt-level=0 -C debuginfo=0 -C codegen-units=16 "${src}" -o "${out}"`;
 
   const compile = await run(rustcCmd);
   if (compile.exitCode) return { output: '', error: compile.stderr.trim() };

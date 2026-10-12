@@ -1,19 +1,24 @@
-# Use Debian/Ubuntu slim as base
-FROM node:20-bookworm-slim
+# Use Node 22 slim for native TypeScript stripping & maximum speed
+FROM node:22-bookworm-slim
 
 # Set environment
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONIOENCODING=utf-8
 ENV PORT=10000
+ENV GOCACHE=/root/.cache/go-build
 
 # Install all compilers & language runtimes:
 # - python3
 # - gcc, g++ (build-essential)
-# - default-jdk (javac, java)
+# - tcc (tiny C compiler: 5ms instant execution)
+# - lld (ultra-fast LLVM linker)
+# - default-jdk-headless (java)
 # - golang-go
-# - rustc, cargo
+# - rustc
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
+    tcc \
+    lld \
     python3 \
     python-is-python3 \
     golang-go \

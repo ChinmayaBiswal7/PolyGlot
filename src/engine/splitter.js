@@ -34,12 +34,27 @@ function splitCode(code) {
   }
 
   // ── Pass 2: group consecutive lines of the same language/family ──
+  let firstKnownLang = null;
+  for (const line of detectedLines) {
+    if (line.language !== 'unknown') {
+      firstKnownLang = line.language;
+      break;
+    }
+  }
+  if (!firstKnownLang) firstKnownLang = 'python';
+
   const blocks = [];
   let current = null;
 
   for (const line of detectedLines) {
     if (line.language === 'unknown') {
-      if (current) {
+      if (!current) {
+        current = {
+          language: firstKnownLang,
+          lines: [line.content],
+          originalLineNumbers: [line.lineNumber],
+        };
+      } else {
         current.lines.push(line.content);
         current.originalLineNumbers.push(line.lineNumber);
       }
