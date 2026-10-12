@@ -52,131 +52,18 @@
 
     <!-- Collapsible VS Code style Explorer Sidebar -->
     <aside class="sidebar" id="sidebar">
-      <!-- Activity Switcher Bar -->
-      <div class="sidebar-activity-bar">
-        <button class="activity-btn active" id="actFilesBtn" title="File Explorer">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-          <span>Files</span>
-        </button>
-        <button class="activity-btn" id="actExtensionsBtn" title="Extensions & Engines">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
-          <span>Extensions</span>
-        </button>
-        <button class="activity-btn" id="actDbBtn" title="SQLite Database Studio">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
-          <span>Database</span>
-        </button>
-      </div>
-
-      <!-- File Explorer View -->
-      <div class="sidebar-section active" id="filesSection">
-        <div class="sidebar-header">
-          <span class="sidebar-title">EXPLORER</span>
-          <div class="sidebar-actions">
-            <button class="icon-btn" id="newFileBtn" title="New File">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
-            </button>
-            <button class="icon-btn" id="newFolderBtn" title="New Folder">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path><line x1="12" y1="11" x2="12" y2="17"></line><line x1="9" y1="14" x2="15" y2="14"></line></svg>
-            </button>
-          </div>
-        </div>
-        <div class="file-tree" id="fileTree"></div>
-      </div>
-
-      <!-- Extensions & Pre-installed Engines View -->
-      <div class="sidebar-section" id="extensionsSection" style="display: none;">
-        <div class="sidebar-header">
-          <span class="sidebar-title">BUILT-IN EXTENSIONS</span>
-        </div>
-        <div class="extensions-list" id="extensionsList">
-          <div class="extension-card">
-            <div class="ext-icon">📊</div>
-            <div class="ext-info">
-              <div class="ext-name">Data Science & ML Engine</div>
-              <div class="ext-desc">Matplotlib plots, chart renderer, NumPy & analytics</div>
-              <span class="ext-badge active">Active · Built-in</span>
-            </div>
-          </div>
-          <div class="extension-card">
-            <div class="ext-icon">🌐</div>
-            <div class="ext-info">
-              <div class="ext-name">Live Web Server & Preview</div>
-              <div class="ext-desc">Real-time HTML/CSS/JS sandbox runner</div>
-              <span class="ext-badge active">Active · Built-in</span>
-            </div>
-          </div>
-          <div class="extension-card">
-            <div class="ext-icon">🗄️</div>
-            <div class="ext-info">
-              <div class="ext-name">SQLite Database Studio</div>
-              <div class="ext-desc">Visual query runner, table inspector & schema manager</div>
-              <span class="ext-badge active">Active · Built-in</span>
-            </div>
-          </div>
-          <div class="extension-card">
-            <div class="ext-icon">🐍</div>
-            <div class="ext-info">
-              <div class="ext-name">Python 3 Runtime</div>
-              <div class="ext-desc">Headless Agg backend, globals bridge, OOP & functional</div>
-              <span class="ext-badge active">Active · Built-in</span>
-            </div>
-          </div>
-          <div class="extension-card">
-            <div class="ext-icon">⚡</div>
-            <div class="ext-info">
-              <div class="ext-name">GCC & G++ Compiler</div>
-              <div class="ext-desc">C & C++20 with instant TCC in-memory compilation</div>
-              <span class="ext-badge active">Active · Built-in</span>
-            </div>
-          </div>
-          <div class="extension-card">
-            <div class="ext-icon">☕</div>
-            <div class="ext-info">
-              <div class="ext-name">Java OpenJDK 22</div>
-              <div class="ext-desc">Fast in-memory single-file executor & custom classes</div>
-              <span class="ext-badge active">Active · Built-in</span>
-            </div>
-          </div>
-          <div class="extension-card">
-            <div class="ext-icon">🦀</div>
-            <div class="ext-info">
-              <div class="ext-name">Rust 1.99 Toolchain</div>
-              <div class="ext-desc">Optimized 16-unit codegen for high speed execution</div>
-              <span class="ext-badge active">Active · Built-in</span>
-            </div>
-          </div>
-          <div class="extension-card">
-            <div class="ext-icon">🐹</div>
-            <div class="ext-info">
-              <div class="ext-name">Go 1.22 Runtime</div>
-              <div class="ext-desc">Cached goroutines, channels, and structs</div>
-              <span class="ext-badge active">Active · Built-in</span>
-            </div>
-          </div>
+      <div class="sidebar-header">
+        <span class="sidebar-title">EXPLORER</span>
+        <div class="sidebar-actions">
+          <button class="icon-btn" id="newFileBtn" title="New File">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+          </button>
+          <button class="icon-btn" id="newFolderBtn" title="New Folder">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path><line x1="12" y1="11" x2="12" y2="17"></line><line x1="9" y1="14" x2="15" y2="14"></line></svg>
+          </button>
         </div>
       </div>
-
-      <!-- Database Studio Sidebar View -->
-      <div class="sidebar-section" id="dbSidebarSection" style="display: none;">
-        <div class="sidebar-header">
-          <span class="sidebar-title">SQLITE DATABASE</span>
-          <button class="icon-btn" id="dbRunSideBtn" title="Run Query">▶</button>
-        </div>
-        <div class="db-sidebar-content">
-          <div class="db-query-box">
-            <textarea id="dbSqlInput" class="db-sql-textarea" placeholder="SELECT * FROM users;"></textarea>
-            <button class="db-exec-btn" id="dbExecBtn">Execute SQL</button>
-          </div>
-          <div class="db-tables-list">
-            <div class="db-subhead">TABLES</div>
-            <div id="dbTablesContainer" class="db-tables-items">
-              <span class="db-empty-hint">Run a CREATE TABLE query or open database/sales.sql to see tables.</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
+      <div class="file-tree" id="fileTree"></div>
     </aside>
 
     <!-- Sidebar Resize Divider -->
@@ -302,7 +189,7 @@
             <div class="visuals-placeholder">
               <div class="visuals-empty-icon">🗄️</div>
               <p>No query results yet.</p>
-              <p class="sub-hint">Open <code>database/sales.sql</code> or use the Database tab in the sidebar to execute SQL queries.</p>
+              <p class="sub-hint">Open <code>database/sales.sql</code> or click Run to execute SQL queries.</p>
             </div>
           </div>
         </div>

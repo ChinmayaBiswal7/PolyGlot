@@ -267,28 +267,7 @@ function getMonacoLang(fileName) {
   return 'plaintext';
 }
 
-// ── Sidebar Activity Switcher (Files / Extensions / Database) ──
-const actFilesBtn = document.getElementById('actFilesBtn');
-const actExtensionsBtn = document.getElementById('actExtensionsBtn');
-const actDbBtn = document.getElementById('actDbBtn');
 
-const filesSection = document.getElementById('filesSection');
-const extensionsSection = document.getElementById('extensionsSection');
-const dbSidebarSection = document.getElementById('dbSidebarSection');
-
-function switchSidebarTab(tab) {
-  actFilesBtn?.classList.toggle('active', tab === 'files');
-  actExtensionsBtn?.classList.toggle('active', tab === 'extensions');
-  actDbBtn?.classList.toggle('active', tab === 'database');
-
-  if (filesSection) filesSection.style.display = tab === 'files' ? 'flex' : 'none';
-  if (extensionsSection) extensionsSection.style.display = tab === 'extensions' ? 'flex' : 'none';
-  if (dbSidebarSection) dbSidebarSection.style.display = tab === 'database' ? 'flex' : 'none';
-}
-
-actFilesBtn?.addEventListener('click', () => switchSidebarTab('files'));
-actExtensionsBtn?.addEventListener('click', () => switchSidebarTab('extensions'));
-actDbBtn?.addEventListener('click', () => switchSidebarTab('database'));
 
 // ── File Explorer & Tabs Management ──
 function renderFileTree() {
