@@ -61,7 +61,7 @@ io.on('connection', (socket) => {
 // ── API: Execute mixed-language code ──
 app.post('/api/run', async (req, res) => {
   try {
-    const result = await executeCode(req.body.code || '', req.body.stdin || '');
+    const result = await executeCode(req.body.code || '', req.body.stdin || '', req.body.filename || '');
     res.json(result);
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -71,7 +71,7 @@ app.post('/api/run', async (req, res) => {
 // ── API: Detect languages per line ──
 app.post('/api/detect', (req, res) => {
   try {
-    const { detectedLines } = splitCode(req.body.code || '');
+    const { detectedLines } = splitCode(req.body.code || '', req.body.filename || '');
     res.json(detectedLines);
   } catch (e) {
     res.status(500).json({ error: e.message });

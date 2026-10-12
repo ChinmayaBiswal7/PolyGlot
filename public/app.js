@@ -340,7 +340,7 @@ async function updateLanguageBadges() {
     const res = await fetch('/api/detect', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code })
+      body: JSON.stringify({ code, filename: activeFileName })
     });
     detectedLines = await res.json();
   } catch (err) {
@@ -431,7 +431,7 @@ async function runCode() {
     const res = await fetch('/api/run', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code, stdin })
+      body: JSON.stringify({ code, stdin, filename: activeFileName })
     });
     const rawText = await res.text();
     let result;

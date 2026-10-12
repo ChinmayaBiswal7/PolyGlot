@@ -6,6 +6,11 @@ const path = require('path');
 const os = require('os');
 const { splitCode } = require('./splitter');
 
+// ═══════════════════════════════════════════════════════════
+//  Execution Engine & Shared Memory Bridge
+//  Full OOP, Pointers, Structs, Functions, and Standard Libs
+// ═══════════════════════════════════════════════════════════
+
 const TEMP_DIR = path.join(os.tmpdir(), 'polyglot-ide');
 const SHARED_MEM_FILE = path.join(TEMP_DIR, 'shared_memory.json');
 
@@ -20,43 +25,23 @@ function resetSharedMemory() {
   fs.writeFileSync(SHARED_MEM_FILE, JSON.stringify({}), 'utf8');
 }
 
-// Full Toolchains Environment
-const EXTRA_PATHS = [
-  'C:\\Program Files\\Rust stable GNU 1.99\\bin',
-  'C:\\Program Files\\Go\\bin',
-  'C:\\Users\\KIIT\\AppData\\Local\\Microsoft\\WinGet\\Packages\\MartinStorsjo.LLVM-MinGW.UCRT_Microsoft.Winget.Source_8wekyb3d8bbwe\\llvm-mingw-20260908-ucrt-x86_64\\bin',
-  'C:\\Program Files\\Common Files\\Oracle\\Java\\javapath'
-];
-
-function getEnv() {
-  const currentPath = process.env.PATH || '';
-  const mergedPath = EXTRA_PATHS.filter(p => fs.existsSync(p)).join(';') + ';' + currentPath;
-  return {
-    ...process.env,
-    PATH: mergedPath,
-    PYTHONIOENCODING: 'utf-8'
-  };
-}
-
-function run(command, stdinInput = '') {
+/**
+ * Execute shell command with stdin support.
+ */
+function run(cmd, stdinInput = '') {
   return new Promise((resolve) => {
-    const child = exec(command, {
-      timeout: 15000,
-      encoding: 'utf8',
-      cwd: TEMP_DIR,
-      env: getEnv()
-    }, (err, stdout, stderr) => {
+    const child = exec(cmd, { cwd: TEMP_DIR, maxBuffer: 10 * 1024 * 1024, timeout: 20000 }, (error, stdout, stderr) => {
       resolve({
         stdout: stdout || '',
-        stderr: stderr || (err ? err.message : ''),
-        exitCode: err ? (err.code ?? 1) : 0,
+        stderr: stderr || '',
+        exitCode: error ? (error.code || 1) : 0,
       });
     });
 
-    if (child.stdin) {
-      if (stdinInput) {
-        child.stdin.write(stdinInput + '\n');
-      }
+    if (stdinInput && child.stdin) {
+      child.stdin.write(stdinInput);
+      child.stdin.end();
+    } else if (child.stdin) {
       child.stdin.end();
     }
   });
@@ -68,6 +53,7 @@ const SHARED_PATH_ESC = SHARED_MEM_FILE.replace(/\\/g, '\\\\');
 
 // 1. Python
 function wrapPython(code) {
+  const cleanCode = code.replace(/^\s*\/\/(.*)$/gm, '# $1');
   return `import json, os
 
 _shared_file = r"${SHARED_MEM_FILE}"
@@ -81,7 +67,7 @@ if os.path.exists(_shared_file):
         pass
 
 # --- User Code ---
-${code}
+${cleanCode}
 
 # --- Export Variables ---
 _export = {}
@@ -113,9 +99,9 @@ function wrapJavaScript(code) {
   let autoDeclarations = '';
   for (const [k, v] of Object.entries(sharedMemoryData)) {
     if (typeof v === 'number' || typeof v === 'boolean') {
-      autoDeclarations += `const ${k} = ${v};\nglobal.${k} = ${v};\n`;
+      autoDeclarations += `var ${k} = ${v};\nglobal.${k} = ${v};\n`;
     } else if (typeof v === 'string') {
-      autoDeclarations += `const ${k} = "${v.replace(/"/g, '\\"')}";\nglobal.${k} = "${v.replace(/"/g, '\\"')}";\n`;
+      autoDeclarations += `var ${k} = "${v.replace(/"/g, '\\"')}";\nglobal.${k} = "${v.replace(/"/g, '\\"')}";\n`;
     }
   }
 
@@ -142,23 +128,28 @@ ${code}
 
 // --- Export Variables ---
 const _export = {};
-for (const [k, v] of Object.entries(global)) {
-  if (!k.startsWith('_') && ['number', 'string', 'boolean'].includes(typeof v)) {
-    _export[k] = v;
-  }
-}
 ${exportSnippets}
+
 try {
-  const current = fs.existsSync(_shared_file) ? JSON.parse(fs.readFileSync(_shared_file, 'utf8')) : {};
-  Object.assign(current, _export);
-  fs.writeFileSync(_shared_file, JSON.stringify(current), 'utf8');
+  let _current = {};
+  if (fs.existsSync(_shared_file)) {
+    try { _current = JSON.parse(fs.readFileSync(_shared_file, 'utf8')); } catch (e) {}
+  }
+  Object.assign(_current, _export);
+  fs.writeFileSync(_shared_file, JSON.stringify(_current), 'utf8');
 } catch (e) {}
 `;
 }
 
 // 3. C
 function wrapC(code) {
-  const headers = '#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n';
+  let sharedMemoryData = {};
+  if (fs.existsSync(SHARED_MEM_FILE)) {
+    try { sharedMemoryData = JSON.parse(fs.readFileSync(SHARED_MEM_FILE, 'utf8')); } catch(e){}
+  }
+
+  const hasShared = Object.keys(sharedMemoryData).length > 0;
+  const hasMain = /\b(?:int|void|signed)\s+main\s*\([^)]*\)/m.test(code) || /\bmain\s*\([^)]*\)\s*\{/m.test(code);
 
   const helperFunctions = `
 int poly_get_int(const char* key, int default_val) {
@@ -250,11 +241,6 @@ void poly_set_str(const char* key, const char* val) {
 }
 `;
 
-  let sharedMemoryData = {};
-  if (fs.existsSync(SHARED_MEM_FILE)) {
-    try { sharedMemoryData = JSON.parse(fs.readFileSync(SHARED_MEM_FILE, 'utf8')); } catch(e){}
-  }
-
   let autoLoads = '';
   for (const [k, v] of Object.entries(sharedMemoryData)) {
     if (typeof v === 'number' && Number.isInteger(v)) {
@@ -268,23 +254,127 @@ void poly_set_str(const char* key, const char* val) {
   for (const v of cCharVars) autoExports += `    poly_set_str("${v}", ${v});\n`;
   for (const v of cIntVars) autoExports += `    poly_set_int("${v}", ${v});\n`;
 
-  let mainBody;
-  if (/int\s+main\s*\(/.test(code)) {
-    mainBody = code.replace(/(int\s+main\s*\([^)]*\)\s*\{)/, `$1\n${autoLoads}`);
-    if (autoExports) {
+  // Required header includes if not present
+  let headers = '';
+  if (!code.includes('<stdio.h>')) headers += '#include <stdio.h>\n';
+  if (!code.includes('<stdlib.h>')) headers += '#include <stdlib.h>\n';
+  if (!code.includes('<string.h>')) headers += '#include <string.h>\n';
+
+  if (hasMain) {
+    let mainBody = code;
+    if (autoLoads) {
+      mainBody = mainBody.replace(/((?:int|void|signed)\s+main\s*\([^)]*\)\s*\{)/, `$1\n${autoLoads}`);
+    }
+    if (autoExports && mainBody.includes('return 0;')) {
       mainBody = mainBody.replace(/return\s+0\s*;/, `${autoExports}    return 0;`);
     }
-  } else {
-    mainBody = `int main() {\n${autoLoads}${code}\n${autoExports}    return 0;\n}`;
+    return `${headers}\n${hasShared ? helperFunctions : ''}\n${mainBody}`;
   }
-  return `${headers}\n${helperFunctions}\n${mainBody}`;
+
+  // Snippet mode: separate functions/structs/typedefs from statements
+  const lines = code.split('\n');
+  const decls = [];
+  const stmts = [];
+  let inFuncOrStruct = false;
+  let braceDepth = 0;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    const opens = (line.match(/\{/g) || []).length;
+    const closes = (line.match(/\}/g) || []).length;
+
+    if (inFuncOrStruct) {
+      decls.push(line);
+      braceDepth += opens - closes;
+      if (braceDepth <= 0) inFuncOrStruct = false;
+      continue;
+    }
+
+    if (/^(?:struct|typedef|enum|union)\b/.test(trimmed) ||
+        /^(?:void|int|char|double|float|long|bool)\s+[A-Za-z0-9_$]+\s*\([^)]*\)\s*\{?/.test(trimmed)) {
+      decls.push(line);
+      braceDepth = opens - closes;
+      if (braceDepth > 0) inFuncOrStruct = true;
+      continue;
+    }
+
+    if (/^#\s*include\b/.test(trimmed) || /^#\s*define\b/.test(trimmed)) {
+      decls.push(line);
+      continue;
+    }
+
+    stmts.push(line);
+  }
+
+  return `${headers}
+${helperFunctions}
+${decls.join('\n')}
+
+int main() {
+${autoLoads}
+${stmts.join('\n')}
+${autoExports}    return 0;
+}
+`;
 }
 
 // 4. C++
 function wrapCpp(code) {
-  const headers = '#include <iostream>\n#include <fstream>\n#include <string>\n#include <cstdio>\n#include <cstdlib>\n#include <cstring>\nusing namespace std;\n';
-  const cWrapped = wrapC(code);
-  return `${headers}\n${cWrapped}`;
+  const hasMain = /\b(?:int|void|signed)\s+main\s*\([^)]*\)/m.test(code) || /\bmain\s*\([^)]*\)\s*\{/m.test(code);
+
+  let headers = '';
+  if (!code.includes('<iostream>')) headers += '#include <iostream>\n';
+  if (!code.includes('using namespace std;') && !code.includes('std::')) {
+    headers += 'using namespace std;\n';
+  }
+
+  if (hasMain) {
+    return `${headers}\n${code}`;
+  }
+
+  // Snippet mode for C++
+  const lines = code.split('\n');
+  const decls = [];
+  const stmts = [];
+  let inBlock = false;
+  let braceDepth = 0;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    const opens = (line.match(/\{/g) || []).length;
+    const closes = (line.match(/\}/g) || []).length;
+
+    if (inBlock) {
+      decls.push(line);
+      braceDepth += opens - closes;
+      if (braceDepth <= 0) inBlock = false;
+      continue;
+    }
+
+    if (/^(?:class|struct|enum|union|template|namespace)\b/.test(trimmed) ||
+        /^(?:void|int|char|double|float|long|bool|auto|string)\s+[A-Za-z0-9_$]+\s*\([^)]*\)\s*\{?/.test(trimmed)) {
+      decls.push(line);
+      braceDepth = opens - closes;
+      if (braceDepth > 0) inBlock = true;
+      continue;
+    }
+
+    if (/^#\s*include\b/.test(trimmed) || /^using\s+namespace\b/.test(trimmed)) {
+      decls.push(line);
+      continue;
+    }
+
+    stmts.push(line);
+  }
+
+  return `${headers}
+${decls.join('\n')}
+
+int main() {
+${stmts.join('\n')}
+    return 0;
+}
+`;
 }
 
 // 5. Java
@@ -307,54 +397,81 @@ function wrapJava(code) {
     autoDeclarations += `        Scanner scanner = new Scanner(System.in.available() > 0 ? System.in : new ByteArrayInputStream("World\\n".getBytes()));\n`;
   }
 
-  const javaStringVars = [...code.matchAll(/\bString\s+([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=/g)].map(m => m[1]);
-  const javaIntVars = [...code.matchAll(/\bint\s+([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=/g)].map(m => m[1]);
-  let javaExports = '';
-  if (javaStringVars.length > 0 || javaIntVars.length > 0) {
-    javaExports += `
-        try {
-            File _f = new File("${SHARED_PATH_ESC}");
-            String _cnt = _f.exists() ? new String(java.nio.file.Files.readAllBytes(_f.toPath()), "UTF-8").trim() : "{}";
-            if (_cnt.endsWith("}")) _cnt = _cnt.substring(0, _cnt.length() - 1);
-            StringBuilder _sb = new StringBuilder(_cnt);
-`;
-    for (const v of javaStringVars) {
-      javaExports += `
-            if (_sb.length() > 1 && !_sb.toString().endsWith("{") && !_sb.toString().endsWith(", ")) _sb.append(", ");
-            _sb.append("\\"${v}\\": \\"" + String.valueOf(${v}).replace("\\"", "\\\\\\\"") + "\\"");
-`;
-    }
-    for (const v of javaIntVars) {
-      javaExports += `
-            if (_sb.length() > 1 && !_sb.toString().endsWith("{") && !_sb.toString().endsWith(", ")) _sb.append(", ");
-            _sb.append("\\"${v}\\": " + ${v});
-`;
-    }
-    javaExports += `
-            if (!_sb.toString().endsWith("}")) _sb.append("}");
-            java.nio.file.Files.write(_f.toPath(), _sb.toString().getBytes("UTF-8"));
-        } catch (Exception _ignored) {}
-`;
+  // Determine class name: public class X, or class X with main, or PolyTemp
+  const pubMatch = code.match(/public\s+class\s+([A-Za-z0-9_$]+)/);
+  const mainClassMatch = code.match(/class\s+([A-Za-z0-9_$]+)[^{]*\{[\s\S]*?public\s+static\s+void\s+main/);
+  const anyClassMatch = code.match(/\bclass\s+([A-Za-z0-9_$]+)/);
+
+  let className = 'PolyTemp';
+  if (pubMatch) {
+    className = pubMatch[1];
+  } else if (mainClassMatch) {
+    className = mainClassMatch[1];
+  } else if (code.includes('public static void main') && anyClassMatch) {
+    className = anyClassMatch[1];
   }
 
-  if (code.includes('class PolyTemp') || code.includes('public class')) {
-    if (code.includes('public static void main')) {
-      return code.replace(/(public\s+static\s+void\s+main\s*\([^)]*\)\s*\{)/, `$1\n${autoDeclarations}`);
+  const hasMain = /\bpublic\s+static\s+void\s+main\b/.test(code);
+
+  if (hasMain) {
+    let result = code;
+    if (autoDeclarations) {
+      result = result.replace(/(public\s+static\s+void\s+main\s*\([^)]*\)\s*\{)/, `$1\n${autoDeclarations}`);
     }
-    return code;
+    // Ensure common imports exist
+    let imports = '';
+    if (!code.includes('import java.util.')) imports += 'import java.util.*;\n';
+    if (!code.includes('import java.io.')) imports += 'import java.io.*;\n';
+    return { code: `${imports}\n${result}`, className };
   }
 
-  return [
-    'import java.io.*;',
-    'import java.util.*;',
-    'public class PolyTemp {',
-    '    public static void main(String[] args) throws Exception {',
-    autoDeclarations,
-    ...code.split('\n').map(l => '        ' + l),
-    javaExports,
-    '    }',
-    '}'
-  ].join('\n');
+  // Snippet mode: move user classes outside PolyTemp, put statements in main()
+  const lines = code.split('\n');
+  const outsideClasses = [];
+  const insideStmts = [];
+  let inClass = false;
+  let braceDepth = 0;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    const opens = (line.match(/\{/g) || []).length;
+    const closes = (line.match(/\}/g) || []).length;
+
+    if (inClass) {
+      outsideClasses.push(line);
+      braceDepth += opens - closes;
+      if (braceDepth <= 0) inClass = false;
+      continue;
+    }
+
+    if (/^(?:(?:public|private|protected)\s+)?(?:abstract\s+|final\s+)?(?:class|interface|enum)\b/.test(trimmed)) {
+      outsideClasses.push(line);
+      braceDepth = opens - closes;
+      if (braceDepth > 0) inClass = true;
+      continue;
+    }
+
+    if (/^import\s+java\./.test(trimmed)) {
+      outsideClasses.push(line);
+      continue;
+    }
+
+    insideStmts.push(line);
+  }
+
+  const wrapped = `import java.io.*;
+import java.util.*;
+
+${outsideClasses.join('\n')}
+
+public class PolyTemp {
+    public static void main(String[] args) throws Exception {
+${autoDeclarations}
+${insideStmts.map(l => '        ' + l).join('\n')}
+    }
+}
+`;
+  return { code: wrapped, className: 'PolyTemp' };
 }
 
 // 6. Go
@@ -373,9 +490,19 @@ function wrapGo(code) {
     }
   }
 
-  if (code.includes('func main()')) {
-    let goCode = code.includes('package main') ? code : `package main\n\nimport "fmt"\n\n${code}`;
-    return goCode.replace(/(func\s+main\s*\(\s*\)\s*\{)/, `$1\n${autoDeclarations}`);
+  const hasMain = /\bfunc\s+main\s*\(\s*\)/m.test(code);
+  const hasPackage = /^\s*package\s+\w+/m.test(code);
+
+  if (hasMain) {
+    let goCode = code;
+    if (!hasPackage) goCode = `package main\n\n${goCode}`;
+    if (!goCode.includes('"fmt"') && /\bfmt\./.test(goCode)) {
+      goCode = goCode.replace(/(package\s+main\s*\n)/, `$1\nimport "fmt"\n`);
+    }
+    if (autoDeclarations) {
+      goCode = goCode.replace(/(func\s+main\s*\(\s*\)\s*\{)/, `$1\n${autoDeclarations}`);
+    }
+    return goCode;
   }
 
   return `package main
@@ -405,8 +532,13 @@ function wrapRust(code) {
     }
   }
 
-  if (code.includes('fn main()')) {
-    return code.replace(/(fn\s+main\s*\(\s*\)\s*\{)/, `$1\n${autoDeclarations}`);
+  const hasMain = /\bfn\s+main\s*\(\s*\)/m.test(code);
+
+  if (hasMain) {
+    if (autoDeclarations) {
+      return code.replace(/(fn\s+main\s*\(\s*\)\s*\{)/, `$1\n${autoDeclarations}`);
+    }
+    return code;
   }
 
   return `fn main() {
@@ -422,7 +554,6 @@ async function executePython(code, stdin = '') {
   const wrapped = wrapPython(code);
   const file = path.join(TEMP_DIR, 'temp.py');
   fs.writeFileSync(file, wrapped, 'utf8');
-  // -B flag skips writing bytecode (.pyc) to disk
   const pyCmd = process.platform === 'win32' ? 'python -B' : 'python3 -B';
   const r = await run(`${pyCmd} "${file}"`, stdin);
   return { output: r.stdout.trim(), error: r.exitCode ? r.stderr.trim() : null };
@@ -498,8 +629,8 @@ async function executeCpp(code, stdin = '') {
 }
 
 async function executeJava(code, stdin = '') {
-  const wrapped = wrapJava(code, stdin);
-  const file = path.join(TEMP_DIR, 'PolyTemp.java');
+  const { code: wrapped, className } = wrapJava(code);
+  const file = path.join(TEMP_DIR, `${className}.java`);
   fs.writeFileSync(file, wrapped, 'utf8');
 
   // 1. Single-file execution (Java 11+: in-memory, no javac required)
@@ -512,7 +643,7 @@ async function executeJava(code, stdin = '') {
   const compile = await run(`javac -J-Xms32m -J-Xmx128m -encoding UTF-8 "${file}"`);
   if (compile.exitCode) return { output: '', error: compile.stderr.trim() };
 
-  const r = await run(`java -Xms32m -Xmx128m -Dfile.encoding=UTF-8 -cp "${TEMP_DIR}" PolyTemp`, stdin);
+  const r = await run(`java -Xms32m -Xmx128m -Dfile.encoding=UTF-8 -cp "${TEMP_DIR}" ${className}`, stdin);
   return { output: r.stdout.trim(), error: r.exitCode ? r.stderr.trim() : null };
 }
 
@@ -556,11 +687,11 @@ const EXECUTORS = {
 
 // ── Master Execution Flow ───────────────────────────
 
-async function executeCode(code, stdin = '') {
+async function executeCode(code, stdin = '', filename = '') {
   ensureTempDir();
   resetSharedMemory();
 
-  const { blocks, detectedLines } = splitCode(code);
+  const { blocks, detectedLines } = splitCode(code, filename);
   const results = [];
 
   for (const block of blocks) {

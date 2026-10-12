@@ -3,6 +3,7 @@
 // ═══════════════════════════════════════════════════════════
 //  Language Detection Engine
 //  Supports: Python, Java, C, C++, JavaScript, TypeScript, Rust, Go
+//  Full OOP, pointers, structs, generic syntax support
 // ═══════════════════════════════════════════════════════════
 
 const LANGUAGE_PATTERNS = {
@@ -11,12 +12,12 @@ const LANGUAGE_PATTERNS = {
     strong: [
       /^\s*print\s*\(/,
       /^\s*def\s+\w+\s*\(/,
-      /^\s*class\s+\w+\s*.*:/,
+      /^\s*class\s+\w+(?:\([^)]*\))?\s*:\s*$/,
       /^\s*import\s+\w+/,
       /^\s*from\s+\w+\s+import/,
       /^\s*elif\s+/,
-      /^\s*except\s*/,
-      /^\s*finally\s*:/,
+      /^\s*except(?:\s+.*)?:\s*$/,
+      /^\s*finally\s*:\s*$/,
       /^\s*with\s+/,
       /^\s*yield\s/,
       /^\s*lambda\s/,
@@ -28,10 +29,8 @@ const LANGUAGE_PATTERNS = {
       /^\s*#[^i][^n][^c]/,
     ],
     moderate: [
-      /:\s*$/,
-      /^\s*if\s+.*:\s*$/,
+      /^\s*(?:if|elif|else|for|while|try|except|finally|with|def|class|async\s+def)\b.*:\s*$/,
       /^\s*for\s+\w+\s+in\s+/,
-      /^\s*while\s+.*:\s*$/,
       /^\s*return(?:\s+[^;]+)?\s*$/,
       /^\s*\w+\s*=\s*\[.*\]\s*$/,
     ],
@@ -43,18 +42,25 @@ const LANGUAGE_PATTERNS = {
       /\bprintln!\s*\(/,
       /\bprint!\s*\(/,
       /\beprintln!\s*\(/,
+      /\bformat!\s*\(/,
+      /\bvec!\s*\[/,
       /\bfn\s+main\s*\(\s*\)/,
+      /^\s*(?:pub\s+)?fn\s+\w+/,
       /^\s*let\s+mut\s+/,
-      /^\s*pub\s+fn\s+/,
-      /^\s*impl\s+/,
+      /^\s*pub\s+(?:fn|struct|enum|trait|type|const)/,
+      /^\s*impl(?:\s+<[^>]+>)?\s+\w+/,
       /^\s*match\s+\w+\s*\{/,
       /\bVec::new\(\)/,
       /\bString::from\(/,
-      /->\s*(i32|u32|i64|u64|String|bool|usize)\b/,
+      /->\s*(?:i32|u32|i64|u64|String|bool|usize|isize|f32|f64)\b/,
+      /\b(?:i8|i16|i32|i64|i128|isize|u8|u16|u32|u64|u128|usize)\b/,
+      /&self\b|&mut\s+self\b/,
+      /^\s*use\s+std::/,
       /\/\/\s*.*(?:\brust\b)/i,
     ],
     moderate: [
-      /^\s*fn\s+\w+\s*\(/,
+      /^\s*struct\s+\w+\s*\{/,
+      /^\s*enum\s+\w+\s*\{/,
       /\bmut\s+\w+/,
     ],
     weak: [
@@ -68,16 +74,17 @@ const LANGUAGE_PATTERNS = {
       /\bfmt\.Printf\s*\(/,
       /\bfmt\.Print\s*\(/,
       /^\s*package\s+main\b/,
-      /^\s*import\s+"fmt"/,
+      /^\s*import\s+(?:\(\s*)?"fmt"/,
       /^\s*func\s+main\s*\(\s*\)/,
-      /^\s*func\s+\w+\s*\(/,
+      /^\s*func\s+(?:\([^)]+\)\s+)?\w+\s*\(/,
       /:=\s*/,
       /\bgo\s+\w+\s*\(/,
       /\bmake\s*\(\s*(chan|map|\[\])/,
       /\/\/\s*.*(?:\bgo\b|\bgolang\b)/i,
     ],
     moderate: [
-      /^\s*type\s+\w+\s+struct/,
+      /^\s*type\s+\w+\s+struct\s*\{?/,
+      /^\s*type\s+\w+\s+interface\s*\{?/,
     ],
     weak: []
   },
@@ -103,6 +110,9 @@ const LANGUAGE_PATTERNS = {
       /public\s+static\s+void\s+main/,
       /public\s+class\s+/,
       /private\s+class\s+/,
+      /class\s+\w+\s+(?:extends|implements)\s+\w+/,
+      /interface\s+\w+/,
+      /@Override\b/,
       /import\s+java\./,
       /import\s+javax\./,
       /new\s+Scanner\s*\(/,
@@ -114,7 +124,8 @@ const LANGUAGE_PATTERNS = {
       /\/\/\s*.*(?:\bjava\b)/i,
     ],
     moderate: [
-      /^\s*(public|private|protected)\s+/,
+      /^\s*(?:public|private|protected)\s+(?:static\s+)?(?:void|int|String|boolean|double|float|long)\s+\w+\s*\(/,
+      /^\s*(?:public|private|protected)\s+class\s+/,
       /^\s*String\s+\w+/,
       /^\s*boolean\s+\w+/,
       /\.equals\s*\(/,
@@ -134,12 +145,16 @@ const LANGUAGE_PATTERNS = {
       /^\s*#include\s*<stdlib\.h>/,
       /^\s*#include\s*<string\.h>/,
       /^\s*#include\s*<math\.h>/,
-      /^\s*int\s+main\s*\(/,
+      /^\s*#include\s*<stdbool\.h>/,
+      /^\s*(?:int|void|signed)\s+main\s*\(/,
       /\bmalloc\s*\(/,
+      /\bcalloc\s*\(/,
+      /\brealloc\s*\(/,
       /\bfree\s*\(/,
       /\bsizeof\s*\(/,
       /\bgets\s*\(/,
       /\bputs\s*\(/,
+      /\w+->\w+/,
       /^\s*int\s+\w+\s*=\s*[^;]+;/,
       /^\s*char\s+(?:\*\s*\w+|\w+\s*\[\s*\]|\w+)\s*=/,
       /^\s*for\s*\(\s*int\s+\w+/,
@@ -148,9 +163,10 @@ const LANGUAGE_PATTERNS = {
     moderate: [
       /^\s*#include\s*<[^i]/,
       /^\s*#define\s+/,
-      /^\s*typedef\s+/,
+      /^\s*typedef\s+struct/,
       /^\s*struct\s+\w+/,
       /\*\s*\w+\s*=/,
+      /(?:int|char|float|double|void)\s*\*\s*\w+/,
     ],
     weak: [
       /;\s*$/,
@@ -167,9 +183,16 @@ const LANGUAGE_PATTERNS = {
       /^\s*#include\s*<vector>/,
       /^\s*#include\s*<algorithm>/,
       /^\s*#include\s*<map>/,
+      /^\s*#include\s*<set>/,
+      /^\s*#include\s*<queue>/,
+      /^\s*#include\s*<stack>/,
       /^\s*using\s+namespace\s+std/,
       /\bstd::/,
       /\bendl\b/,
+      /^\s*(?:public|private|protected)\s*:/,
+      /^\s*class\s+\w+(?:\s*:\s*(?:public|private|protected)\s+\w+)?\s*\{?/,
+      /\b(?:virtual|override|nullptr)\b/,
+      /\b(?:new|delete)\s+\w+/,
       /\/\/\s*.*(?:c\+\+|cpp\b)/i,
     ],
     moderate: [
@@ -177,6 +200,9 @@ const LANGUAGE_PATTERNS = {
       /^\s*namespace\s+/,
       /^\s*auto\s+\w+/,
       /\w+::\w+/,
+      /\bvector\s*</,
+      /\bmap\s*</,
+      /\bstring\s+\w+/,
     ],
     weak: [
       /;\s*$/,
@@ -261,10 +287,8 @@ function detectLanguage(line) {
     return { language: 'unknown', confidence: 0 };
   }
 
-  return {
-    language: bestLang,
-    confidence: Math.min(bestScore / 15, 1),
-  };
+  const confidence = Math.min(bestScore / 15, 1.0);
+  return { language: bestLang, confidence };
 }
 
 module.exports = { detectLanguage, LANGUAGE_PATTERNS };
