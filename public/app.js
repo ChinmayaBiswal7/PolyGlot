@@ -1345,12 +1345,8 @@ function enterPlacementMode(problem = INTERVIEW_PROBLEMS[0]) {
   proctorTimeRemainingSeconds = problem.timeMinutes * 60;
   testStartTime = new Date();
 
-  // 1. Enter Fullscreen
-  try {
-    if (document.documentElement.requestFullscreen) {
-      document.documentElement.requestFullscreen().catch(() => {});
-    }
-  } catch (e) {}
+  // 1. Enter Fullscreen and Lock Escape Key
+  requestInterviewFullscreen();
 
   // 2. Adjust Body and UI to Placement Mode
   document.body.classList.add('placement-mode');
@@ -1473,15 +1469,24 @@ window.addEventListener('keydown', (e) => {
   }
 }, true);
 
-// Request browser fullscreen helper
-function requestInterviewFullscreen() {
+// Request browser fullscreen helper with Keyboard Lock (Locks physical Escape key)
+async function requestInterviewFullscreen() {
   const elem = document.documentElement;
-  if (elem.requestFullscreen) {
-    elem.requestFullscreen().catch(() => {});
-  } else if (elem.webkitRequestFullscreen) {
-    elem.webkitRequestFullscreen();
-  } else if (elem.msRequestFullscreen) {
-    elem.msRequestFullscreen();
+  try {
+    if (elem.requestFullscreen) {
+      await elem.requestFullscreen();
+    } else if (elem.webkitRequestFullscreen) {
+      elem.webkitRequestFullscreen();
+    } else if (elem.msRequestFullscreen) {
+      elem.msRequestFullscreen();
+    }
+  } catch (e) {}
+
+  // Physical Keyboard Lock API: Locks Escape, Tab, Alt keys inside fullscreen
+  if (navigator.keyboard && typeof navigator.keyboard.lock === 'function') {
+    try {
+      await navigator.keyboard.lock(['Escape', 'Tab']);
+    } catch (lockErr) {}
   }
 }
 
@@ -1582,6 +1587,13 @@ function exitPlacementMode() {
       glyphMargin: true,
       hover: { enabled: true }
     });
+  }
+
+  // Release keyboard lock if active
+  if (navigator.keyboard && typeof navigator.keyboard.unlock === 'function') {
+    try {
+      navigator.keyboard.unlock();
+    } catch (e) {}
   }
 
   // Exit fullscreen if active
