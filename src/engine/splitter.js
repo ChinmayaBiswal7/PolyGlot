@@ -5,7 +5,8 @@ const { detectLanguage } = require('./detector');
 // ═══════════════════════════════════════════════════════════
 //  Code Splitter
 //  Splits mixed-language code into blocks grouped by detected language.
-//  Preserves single-language full programs without fragmenting them.
+//  Preserves single-language full programs without fragmenting them,
+//  and cleanly separates multi-program / multi-language mixtures.
 // ═══════════════════════════════════════════════════════════
 
 function isSameFamily(langA, langB) {
@@ -42,27 +43,39 @@ function hasExplicitMarker(code) {
 function detectUnifiedLanguage(code) {
   if (hasExplicitMarker(code)) return null;
 
-  // Rust program
+  const detected = new Set();
+
+  // Rust
   if (/\bfn\s+main\s*\(\s*\)/.test(code) || /^\s*impl(?:\s+<[^>]+>)?\s+\w+/m.test(code) || /\bprintln!\s*\(/.test(code) || /^\s*use\s+std::/m.test(code)) {
-    return 'rust';
+    detected.add('rust');
   }
-  // Go program
+  // Go
   if (/^\s*package\s+main\b/m.test(code) || /\bfunc\s+main\s*\(\s*\)/.test(code)) {
-    return 'go';
+    detected.add('go');
   }
-  // Java program
+  // Java
   if (/\bpublic\s+class\b/.test(code) || /\bpublic\s+static\s+void\s+main\b/.test(code) || /^\s*import\s+java\./m.test(code) || /System\.out\.(?:println|print|printf)/.test(code)) {
-    return 'java';
+    detected.add('java');
   }
-  // C++ program
+  // C++
   if (/#include\s*<iostream>|#include\s*<vector>|#include\s*<string>|#include\s*<algorithm>|#include\s*<map>|\busing\s+namespace\s+std\b|\bcout\s*<<|\bcin\s*>>|\bclass\s+\w+(?:\s*:\s*public\s+\w+)?\s*\{/.test(code)) {
-    return 'cpp';
+    detected.add('cpp');
   }
-  // C program
+  // C
   if (/#include\s*<stdio\.h>|#include\s*<stdlib\.h>|^\s*(?:int|void|signed)\s+main\s*\(/m.test(code)) {
-    if (/\b(?:cout|cin|class\s+\w+|public:|private:|vector<|std::)\b/.test(code)) return 'cpp';
-    return 'c';
+    if (!detected.has('cpp')) detected.add('c');
   }
+  // Python
+  if (/^\s*def\s+\w+\s*\(|^\s*from\s+\w+\s+import|\[\s*\w+\s+for\s+\w+\s+in\s+/.test(code)) {
+    detected.add('python');
+  }
+
+  // Exactly one distinct language is present in the entire file
+  if (detected.size === 1) {
+    return [...detected][0];
+  }
+
+  // If multiple languages are detected, it is a polyglot / multi-language mixture
   return null;
 }
 
@@ -108,8 +121,13 @@ function splitCode(code, filename = '') {
 
   // Multi-language polyglot splitting pass
   const detectedLines = [];
+  let currentLangContext = null;
+
   for (let i = 0; i < lines.length; i++) {
-    const detection = detectLanguage(lines[i]);
+    const detection = detectLanguage(lines[i], currentLangContext);
+    if (detection.language !== 'unknown') {
+      currentLangContext = detection.language;
+    }
     detectedLines.push({
       lineNumber: i + 1,
       content: lines[i],
@@ -160,8 +178,18 @@ function splitCode(code, filename = '') {
       continue;
     }
 
-    // If already in a block, only switch if confidence is high or an explicit marker is present
+    // Only switch if confidence is high or an explicit marker is present
     if (current && line.confidence < 0.6 && !isExplicitMarker && !isSameFamily(current.language, line.language)) {
+      current.lines.push(line.content);
+      current.originalLineNumbers.push(line.lineNumber);
+      braceDepth = Math.max(0, braceDepth + openBraces - closeBraces);
+      continue;
+    }
+
+    // If current block already matches the detected line's language or family, stay in current
+    if (current && (current.language === line.language || isSameFamily(current.language, line.language))) {
+      if (line.language === 'typescript') current.language = 'typescript';
+      if (line.language === 'cpp') current.language = 'cpp';
       current.lines.push(line.content);
       current.originalLineNumbers.push(line.lineNumber);
       braceDepth = Math.max(0, braceDepth + openBraces - closeBraces);
@@ -178,8 +206,6 @@ function splitCode(code, filename = '') {
         originalLineNumbers: [line.lineNumber],
       };
     } else {
-      if (line.language === 'typescript') current.language = 'typescript';
-      if (line.language === 'cpp') current.language = 'cpp';
       current.lines.push(line.content);
       current.originalLineNumbers.push(line.lineNumber);
     }

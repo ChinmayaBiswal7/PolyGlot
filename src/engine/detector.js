@@ -110,6 +110,7 @@ const LANGUAGE_PATTERNS = {
       /public\s+static\s+void\s+main/,
       /public\s+class\s+/,
       /private\s+class\s+/,
+      /^\s*class\s+\w+\s*\{/,
       /class\s+\w+\s+(?:extends|implements)\s+\w+/,
       /interface\s+\w+/,
       /@Override\b/,
@@ -121,6 +122,10 @@ const LANGUAGE_PATTERNS = {
       /\.println\s*\(/,
       /^\s*String\s+\w+\s*=/,
       /\bscanner\.\w+/,
+      /^\s*(?:public|private|protected)\s+[A-Z]\w*(?:<[^>]+>)?\s+\w+\s*[;=]/,
+      /^\s*(?:public|private|protected)\s+[A-Z]\w*\s*\([^)]*\)\s*\{/,
+      /^\s*this\.\w+\s*=/,
+      /\b(?:List<|Map<|Set<|ArrayList<|HashMap<)/,
       /\/\/\s*.*(?:\bjava\b)/i,
     ],
     moderate: [
@@ -246,8 +251,9 @@ const LANGUAGE_PATTERNS = {
 /**
  * Detect the programming language of a single line of code.
  * Returns { language, confidence } where confidence is 0–1.
+ * Supports contextLang to prefer the active language in case of ties.
  */
-function detectLanguage(line) {
+function detectLanguage(line, contextLang = null) {
   const trimmed = line.trim();
 
   // Skip empty lines, lone braces, and pure whitespace
@@ -281,6 +287,11 @@ function detectLanguage(line) {
       bestScore = score;
       bestLang = lang;
     }
+  }
+
+  // If there is a tie between the active context language and another language, preserve contextLang
+  if (contextLang && scores[contextLang] === bestScore && bestScore >= 4) {
+    bestLang = contextLang;
   }
 
   if (bestScore < 4) {
