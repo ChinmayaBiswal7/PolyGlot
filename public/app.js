@@ -985,10 +985,15 @@ async function runCode() {
   } catch (e) {
     showOutput('Network error: ' + e.message, true);
   } finally {
-    btn.innerHTML = '<span class="run-icon">▶</span> Run';
-    btn.classList.remove('running');
+    if (btn) {
+      btn.innerHTML = '<span class="run-icon">▶</span> Run';
+      btn.classList.remove('running');
+    }
   }
 }
+
+// ── Bind Run Button Click Listener ──
+document.getElementById('runBtn')?.addEventListener('click', runCode);
 
 // ── Display Results (Clean Unified Terminal Output) ──
 function displayResults(result) {
@@ -1456,6 +1461,23 @@ window.addEventListener('blur', () => {
 document.addEventListener('visibilitychange', () => {
   if (isPlacementMode && document.visibilityState === 'hidden') {
     handleProctorViolation('Tab switched / Left interview window');
+  }
+});
+
+// Prevent escaping placement mode accidentally with Escape key
+window.addEventListener('keydown', (e) => {
+  if (isPlacementMode && e.key === 'Escape') {
+    // Prevent Escape from exiting placement mode
+    e.preventDefault();
+    showAntiCheatToast('INTERVIEW IN PROGRESS', 'Interview mode is active. To conclude or exit, click the red "End Test & Submit" button.');
+  }
+}, true);
+
+// Keep placement mode active even if browser exits OS fullscreen
+document.addEventListener('fullscreenchange', () => {
+  if (isPlacementMode && !document.fullscreenElement) {
+    // User exited OS fullscreen: retain interview mode layout and warn user
+    showAntiCheatToast('FULLSCREEN EXITED', 'Please stay focused. Click "End Test & Submit" when you are finished.');
   }
 });
 
