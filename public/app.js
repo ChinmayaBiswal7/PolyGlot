@@ -362,8 +362,110 @@ function closeTab(filePath) {
   }
 }
 
-document.getElementById('newFileBtn')?.addEventListener('click', () => {
-  const name = prompt('Enter new file name (e.g. script.py, main.cpp, index.html):');
+// ── In-App Custom Dialogs (Replaces browser system prompt/alert/confirm) ──
+function showCustomPrompt(title, desc, defaultVal = '') {
+  return new Promise((resolve) => {
+    const modal = document.getElementById('customPromptModal');
+    const titleEl = document.getElementById('promptModalTitle');
+    const descEl = document.getElementById('promptModalDesc');
+    const inputEl = document.getElementById('promptModalInput');
+    const okBtn = document.getElementById('promptOkBtn');
+    const cancelBtn = document.getElementById('promptCancelBtn');
+    const closeBtn = document.getElementById('closePromptBtn');
+
+    if (!modal || !inputEl) {
+      return resolve(null);
+    }
+
+    titleEl.textContent = title;
+    descEl.textContent = desc;
+    inputEl.value = defaultVal;
+    modal.style.display = 'flex';
+    inputEl.focus();
+    inputEl.select();
+
+    function cleanup() {
+      modal.style.display = 'none';
+      okBtn.removeEventListener('click', onOk);
+      cancelBtn.removeEventListener('click', onCancel);
+      closeBtn.removeEventListener('click', onCancel);
+      inputEl.removeEventListener('keydown', onKeyDown);
+    }
+
+    function onOk() {
+      const val = inputEl.value;
+      cleanup();
+      resolve(val);
+    }
+
+    function onCancel() {
+      cleanup();
+      resolve(null);
+    }
+
+    function onKeyDown(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        onOk();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        onCancel();
+      }
+    }
+
+    okBtn.addEventListener('click', onOk);
+    cancelBtn.addEventListener('click', onCancel);
+    closeBtn.addEventListener('click', onCancel);
+    inputEl.addEventListener('keydown', onKeyDown);
+  });
+}
+
+function showCustomConfirm(title, message, isDanger = false) {
+  return new Promise((resolve) => {
+    const modal = document.getElementById('customConfirmModal');
+    const titleEl = document.getElementById('confirmModalTitle');
+    const msgEl = document.getElementById('confirmModalMsg');
+    const okBtn = document.getElementById('confirmOkBtn');
+    const cancelBtn = document.getElementById('confirmCancelBtn');
+
+    if (!modal) {
+      return resolve(true);
+    }
+
+    titleEl.textContent = title;
+    msgEl.textContent = message;
+    if (isDanger) {
+      okBtn.classList.add('danger');
+      okBtn.textContent = 'End & Submit';
+    } else {
+      okBtn.classList.remove('danger');
+      okBtn.textContent = 'Confirm';
+    }
+    modal.style.display = 'flex';
+
+    function cleanup() {
+      modal.style.display = 'none';
+      okBtn.removeEventListener('click', onOk);
+      cancelBtn.removeEventListener('click', onCancel);
+    }
+
+    function onOk() {
+      cleanup();
+      resolve(true);
+    }
+
+    function onCancel() {
+      cleanup();
+      resolve(false);
+    }
+
+    okBtn.addEventListener('click', onOk);
+    cancelBtn.addEventListener('click', onCancel);
+  });
+}
+
+document.getElementById('newFileBtn')?.addEventListener('click', async () => {
+  const name = await showCustomPrompt('Create New File', 'Enter file name (e.g. script.py, solution.cpp, index.html):');
   if (name && name.trim()) {
     const clean = name.trim();
     if (!projectFiles[clean]) {
@@ -373,8 +475,8 @@ document.getElementById('newFileBtn')?.addEventListener('click', () => {
   }
 });
 
-document.getElementById('newFolderBtn')?.addEventListener('click', () => {
-  const folder = prompt('Enter folder/file path (e.g. src/math.poly):');
+document.getElementById('newFolderBtn')?.addEventListener('click', async () => {
+  const folder = await showCustomPrompt('Create File in Folder', 'Enter file path with folder (e.g. src/math.poly, models/tree.py):');
   if (folder && folder.trim()) {
     const clean = folder.trim();
     if (!projectFiles[clean]) {
@@ -1284,6 +1386,8 @@ function enterPlacementMode(problem = INTERVIEW_PROBLEMS[0]) {
     if (problem.starterCode.includes('def ')) activeFileName = 'interview_solution.py';
     projectFiles[activeFileName] = problem.starterCode;
     editor.setValue(problem.starterCode);
+    monaco.editor.setModelLanguage(editor.getModel(), getMonacoLang(activeFileName));
+    updateLanguageBadges();
   }
 
   // 5. Start Proctor Timer
@@ -1343,14 +1447,15 @@ function handleProctorViolation(reason) {
 }
 
 window.addEventListener('blur', () => {
-  if (isPlacementMode) {
+  // Only trigger if document is actually hidden or inactive, not when clicking an in-app modal
+  if (isPlacementMode && document.visibilityState === 'hidden') {
     handleProctorViolation('Focus lost / Window blur detected');
   }
 });
 
 document.addEventListener('visibilitychange', () => {
   if (isPlacementMode && document.visibilityState === 'hidden') {
-    handleProctorViolation('Tab switched / Hidden tab detected');
+    handleProctorViolation('Tab switched / Left interview window');
   }
 });
 
@@ -1472,10 +1577,14 @@ proctorChangeQBtn?.addEventListener('click', () => {
   if (problemPickerModal) problemPickerModal.style.display = 'flex';
 });
 
-proctorEndTestBtn?.addEventListener('click', () => {
-  const confirmed = confirm('Are you sure you want to end and submit your interview test?');
+proctorEndTestBtn?.addEventListener('click', async () => {
+  const confirmed = await showCustomConfirm(
+    'End & Submit Interview Test',
+    'Are you sure you want to end and submit your interview solution now? This will finalize your code and display the assessment report.',
+    true
+  );
   if (confirmed) {
-    endInterviewTest('Candidate clicked End Test & Submit.');
+    endInterviewTest('Candidate completed test and submitted solution.');
   }
 });
 

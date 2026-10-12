@@ -253,6 +253,40 @@
     </div>
   </div>
 
+  <!-- Modern Confirm Modal (No browser alert) -->
+  <div class="interview-modal-backdrop" id="customConfirmModal" style="display: none;">
+    <div class="interview-modal prompt-modal">
+      <div class="interview-modal-header">
+        <h3 id="confirmModalTitle">Confirm Action</h3>
+      </div>
+      <div class="interview-modal-body">
+        <p id="confirmModalMsg" style="margin: 0; color: #cbd5e1; font-size: 14px; line-height: 1.5;"></p>
+      </div>
+      <div class="interview-modal-footer" style="gap: 10px;">
+        <button class="cancel-modal-btn" id="confirmCancelBtn">Cancel</button>
+        <button class="action-modal-btn" id="confirmOkBtn">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modern Prompt Modal (No browser alert for New File / New Folder) -->
+  <div class="interview-modal-backdrop" id="customPromptModal" style="display: none;">
+    <div class="interview-modal prompt-modal">
+      <div class="interview-modal-header">
+        <h3 id="promptModalTitle">New File</h3>
+        <button class="modal-close-icon" id="closePromptBtn">×</button>
+      </div>
+      <div class="interview-modal-body">
+        <p id="promptModalDesc" style="margin: 0 0 10px 0; color: #8b949e; font-size: 13px;"></p>
+        <input type="text" class="custom-modal-input" id="promptModalInput" placeholder="e.g. script.py, main.cpp, web/index.html" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="interview-modal-footer" style="gap: 10px;">
+        <button class="cancel-modal-btn" id="promptCancelBtn">Cancel</button>
+        <button class="action-modal-btn" id="promptOkBtn">Create</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Anti-Cheat Warning Toast -->
   <div class="anti-cheat-alert" id="antiCheatAlert" style="display: none;">
     <div class="alert-icon">⚠️</div>
