@@ -395,14 +395,26 @@ async function runCode() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ code })
     });
-    const result = await res.json();
+    const rawText = await res.text();
+    let result;
+    try {
+      result = JSON.parse(rawText);
+    } catch (parseErr) {
+      if (rawText.includes('<!DOCTYPE') || res.status === 502 || res.status === 503) {
+        showOutput('⏳ Server is ready now (was applying updates). Please click Run again!', false);
+      } else {
+        showOutput('Server error: ' + rawText.slice(0, 150), true);
+      }
+      return;
+    }
+
     displayResults(result);
 
     if (socket) {
       socket.emit('run-sync', result);
     }
   } catch (e) {
-    showOutput('Execution error: ' + e.message, true);
+    showOutput('Network error: ' + e.message, true);
   } finally {
     btn.innerHTML = '<span class="run-icon">▶</span> Run';
     btn.classList.remove('running');
