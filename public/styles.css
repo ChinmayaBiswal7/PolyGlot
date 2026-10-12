@@ -100,12 +100,206 @@ body {
   opacity: 0.6;
 }
 
-/* ── Main Container ── */
+.sidebar-toggle {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-dim);
+  padding: 4px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
 
-.container {
+.sidebar-toggle:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+/* ── Workspace: Sidebar + Main Area ── */
+
+.workspace {
+  display: flex;
+  height: calc(100vh - 38px);
+  overflow: hidden;
+}
+
+/* ── VS Code Style Sidebar ── */
+
+.sidebar {
+  width: 220px;
+  min-width: 150px;
+  max-width: 400px;
+  background: #111419;
+  border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 38px);
+  user-select: none;
+  transition: width 0.2s cubic-bezier(0.2, 0, 0, 1), transform 0.2s ease;
+}
+
+.sidebar.collapsed {
+  width: 0 !important;
+  min-width: 0 !important;
+  border-right: none;
+  overflow: hidden;
+  visibility: hidden;
+}
+
+.sidebar-header {
+  height: 35px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(48, 54, 61, 0.4);
+}
+
+.sidebar-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  color: #7d8590;
+}
+
+.sidebar-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.icon-btn {
+  background: transparent;
+  border: none;
+  color: #7d8590;
+  padding: 3px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.icon-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.file-tree {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-size: 13px;
+}
+
+.tree-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 12px;
+  color: #c9d1d9;
+  cursor: pointer;
+  transition: background 0.1s ease;
+  white-space: nowrap;
+}
+
+.tree-item:hover {
+  background: #1c2128;
+}
+
+.tree-item.active {
+  background: #21262d;
+  color: #58a6ff;
+  font-weight: 600;
+  border-left: 2px solid #58a6ff;
+  padding-left: 10px;
+}
+
+.tree-folder {
+  color: #8b949e;
+  font-weight: 600;
+}
+
+.tree-icon {
+  font-size: 13px;
+  display: inline-flex;
+}
+
+.sidebar-resizer {
+  width: 4px;
+  cursor: ew-resize;
+  background: transparent;
+  transition: background 0.2s ease;
+  z-index: 5;
+}
+
+.sidebar-resizer:hover {
+  background: var(--accent);
+}
+
+/* ── Open Tabs Bar ── */
+
+.tabs-bar {
+  height: 35px;
+  background: #111419;
+  display: flex;
+  align-items: center;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--border);
+}
+
+.tab {
+  height: 100%;
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #161b22;
+  border-right: 1px solid var(--border);
+  font-size: 12px;
+  color: #8b949e;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.1s ease;
+}
+
+.tab:hover {
+  background: #1c2128;
+  color: var(--text);
+}
+
+.tab.active {
+  background: var(--bg);
+  color: #f0f6fc;
+  font-weight: 600;
+  border-top: 2px solid #58a6ff;
+}
+
+.tab-close {
+  font-size: 14px;
+  opacity: 0.6;
+  border-radius: 3px;
+  padding: 0 2px;
+}
+
+.tab-close:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--red);
+}
+
+/* ── Main Container (Editor area) ── */
+
+.container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-width: 0;
 }
 
 /* ── Toolbar ── */

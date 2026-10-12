@@ -1,6 +1,6 @@
 // ═══════════════════════════════════════════════════
 //  PolyGlot IDE — Web Client with Live Collaboration
-//  Monaco editor + language detection + Socket.io rooms
+//  Monaco editor + language detection + File Explorer
 // ═══════════════════════════════════════════════════
 
 let editor;
@@ -19,22 +19,11 @@ const LANG_COLORS = {
   cpp:        { color: '#f34b7d', label: 'C++ ⚡' },
 };
 
-// ── Room ID from URL Hash (e.g. #room-4f8a) ──
-function getOrCreateRoom() {
-  let hash = window.location.hash.replace('#', '').trim();
-  if (!hash) {
-    hash = 'room-' + Math.random().toString(36).substring(2, 8);
-    window.location.hash = hash;
-  }
-  return hash;
-}
-
-const currentRoom = getOrCreateRoom();
-
-function getSampleCode() {
-  return [
+// ── Multi-File Project State ──
+const projectFiles = {
+  'main.poly': [
     '# Welcome to PolyGlot IDE!',
-    '# Share the URL to collaborate in real-time!',
+    '# Write in ANY language in one file or multiple files.',
     '',
     'print("Hello from Python! 🐍")',
     '',
@@ -45,8 +34,44 @@ function getSampleCode() {
     'cout << "Hello from C++! ⚡" << endl;',
     '',
     'console.log("Hello from JavaScript! 🌐");',
-  ].join('\n');
+  ].join('\n'),
+
+  'algorithms/prime.poly': [
+    '# Multi-Language Prime Pipeline',
+    'n = 29',
+    'print(f"Checking prime for: {n}")',
+    '',
+    'int is_prime = 1;',
+    'for (int i = 2; i * i <= n; i++) {',
+    '    if (n % i == 0) { is_prime = 0; break; }',
+    '}',
+    'poly_set_int("is_prime", is_prime);',
+    '',
+    'const status = is_prime === 1 ? "PRIME" : "NOT PRIME";',
+    'console.log(`Result: ${n} is ${status}! 🎉`);',
+  ].join('\n'),
+
+  'systems/demo.rs': [
+    '// Standalone Rust or Mixed File',
+    'println!("Rust says: hello from the systems thread!");',
+    'fmt.Println("Go says: hello concurrently!");',
+  ].join('\n'),
+};
+
+let activeFileName = 'main.poly';
+const openTabs = ['main.poly', 'algorithms/prime.poly'];
+
+// ── Room ID from URL Hash ──
+function getOrCreateRoom() {
+  let hash = window.location.hash.replace('#', '').trim();
+  if (!hash) {
+    hash = 'room-' + Math.random().toString(36).substring(2, 8);
+    window.location.hash = hash;
+  }
+  return hash;
 }
+
+const currentRoom = getOrCreateRoom();
 
 // ── Initialize Monaco Editor ──
 require.config({
@@ -71,7 +96,7 @@ require(['vs/editor/editor.main'], function () {
   });
 
   editor = monaco.editor.create(document.getElementById('editor'), {
-    value: getSampleCode(),
+    value: projectFiles[activeFileName],
     language: 'plaintext',
     theme: 'polyglot-dark',
     fontSize: 14,
@@ -97,12 +122,15 @@ require(['vs/editor/editor.main'], function () {
     suggest: { showWords: false },
   });
 
-  // Real-time broadcast on change
+  // Save changes to active file & broadcast
   let detectTimer;
   editor.onDidChangeModelContent(() => {
+    projectFiles[activeFileName] = editor.getValue();
+
     if (!isRemoteUpdate && socket) {
       socket.emit('code-change', {
         room: currentRoom,
+        fileName: activeFileName,
         code: editor.getValue()
       });
     }
@@ -119,11 +147,142 @@ require(['vs/editor/editor.main'], function () {
     run: () => runCode(),
   });
 
-  // Initial detection
-  updateLanguageBadges();
+  // Ctrl+B → Toggle Sidebar
+  editor.addAction({
+    id: 'polyglot-toggle-sidebar',
+    label: 'Toggle Sidebar',
+    keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyB],
+    run: () => toggleSidebar(),
+  });
 
-  // Setup WebSockets after editor is ready
+  renderFileTree();
+  renderTabs();
+  updateLanguageBadges();
   initRealtime();
+});
+
+// ── File Explorer & Tabs Management ──
+
+function renderFileTree() {
+  const container = document.getElementById('fileTree');
+  if (!container) return;
+  container.innerHTML = '';
+
+  const paths = Object.keys(projectFiles).sort();
+
+  for (const filePath of paths) {
+    const item = document.createElement('div');
+    item.className = 'tree-item' + (filePath === activeFileName ? ' active' : '');
+    
+    // Choose icon based on name
+    let icon = '📄';
+    if (filePath.endsWith('.poly')) icon = '◈';
+    else if (filePath.endsWith('.rs')) icon = '🦀';
+    else if (filePath.endsWith('.py')) icon = '🐍';
+    else if (filePath.endsWith('.c') || filePath.endsWith('.cpp')) icon = '🔧';
+
+    item.innerHTML = `<span class="tree-icon">${icon}</span> <span>${escapeHtml(filePath)}</span>`;
+    item.addEventListener('click', () => switchFile(filePath));
+    container.appendChild(item);
+  }
+}
+
+function renderTabs() {
+  const container = document.getElementById('tabsBar');
+  if (!container) return;
+  container.innerHTML = '';
+
+  for (const filePath of openTabs) {
+    const tab = document.createElement('div');
+    tab.className = 'tab' + (filePath === activeFileName ? ' active' : '');
+    const baseName = filePath.split('/').pop();
+
+    tab.innerHTML = `
+      <span>${escapeHtml(baseName)}</span>
+      <span class="tab-close" title="Close">&times;</span>
+    `;
+
+    tab.addEventListener('click', (e) => {
+      if (e.target.classList.contains('tab-close')) {
+        closeTab(filePath);
+      } else {
+        switchFile(filePath);
+      }
+    });
+
+    container.appendChild(tab);
+  }
+}
+
+function switchFile(filePath) {
+  if (!projectFiles.hasOwnProperty(filePath)) return;
+  activeFileName = filePath;
+
+  if (!openTabs.includes(filePath)) {
+    openTabs.push(filePath);
+  }
+
+  isRemoteUpdate = true;
+  editor.setValue(projectFiles[filePath] || '');
+  isRemoteUpdate = false;
+
+  renderFileTree();
+  renderTabs();
+  updateLanguageBadges();
+}
+
+function closeTab(filePath) {
+  const idx = openTabs.indexOf(filePath);
+  if (idx > -1) {
+    openTabs.splice(idx, 1);
+  }
+  if (activeFileName === filePath && openTabs.length > 0) {
+    switchFile(openTabs[openTabs.length - 1]);
+  } else if (openTabs.length === 0) {
+    openTabs.push(filePath);
+    switchFile(filePath);
+  } else {
+    renderTabs();
+  }
+}
+
+// ── New File / New Folder Buttons ──
+document.getElementById('newFileBtn')?.addEventListener('click', () => {
+  const name = prompt('Enter new file name (e.g. script.poly, utils.py):');
+  if (name && name.trim()) {
+    const clean = name.trim();
+    if (!projectFiles[clean]) {
+      projectFiles[clean] = '// ' + clean + '\n\n';
+    }
+    switchFile(clean);
+  }
+});
+
+document.getElementById('newFolderBtn')?.addEventListener('click', () => {
+  const folder = prompt('Enter folder/file path (e.g. src/math.poly):');
+  if (folder && folder.trim()) {
+    const clean = folder.trim();
+    if (!projectFiles[clean]) {
+      projectFiles[clean] = '// ' + clean + '\n\n';
+    }
+    switchFile(clean);
+  }
+});
+
+// ── Sidebar Toggle Button & Keyboard Shortcut (Ctrl+B) ──
+function toggleSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  if (sidebar) {
+    sidebar.classList.toggle('collapsed');
+  }
+}
+
+document.getElementById('toggleSidebarBtn')?.addEventListener('click', toggleSidebar);
+window.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
+    e.preventDefault();
+    toggleSidebar();
+  }
 });
 
 // ── Real-Time WebSockets Collaboration ──
@@ -136,19 +295,21 @@ function initRealtime() {
     socket.emit('join-room', currentRoom);
   });
 
-  // Initial code sync from server for this room
   socket.on('code-sync', (code) => {
     if (code && editor && code !== editor.getValue()) {
       isRemoteUpdate = true;
+      projectFiles[activeFileName] = code;
       editor.setValue(code);
       isRemoteUpdate = false;
       updateLanguageBadges();
     }
   });
 
-  // Live edits from other users
   socket.on('code-update', (data) => {
-    if (editor && data.code !== editor.getValue()) {
+    if (data.fileName) {
+      projectFiles[data.fileName] = data.code;
+    }
+    if (data.fileName === activeFileName && editor && data.code !== editor.getValue()) {
       isRemoteUpdate = true;
       const pos = editor.getPosition();
       editor.setValue(data.code);
@@ -158,13 +319,11 @@ function initRealtime() {
     }
   });
 
-  // Live user count
   socket.on('user-count', (count) => {
     const el = document.getElementById('userCount');
     if (el) el.textContent = `${count} live`;
   });
 
-  // Live run result from peer
   socket.on('run-result', (result) => {
     displayResults(result);
   });
@@ -206,17 +365,18 @@ async function updateLanguageBadges() {
     });
   }
 
-  // Update toolbar badges
   const container = document.getElementById('languageBadges');
-  container.innerHTML = '';
-  for (const lang of languages) {
-    const info = LANG_COLORS[lang];
-    const el = document.createElement('span');
-    el.className = 'badge';
-    el.textContent = info.label;
-    el.style.color = info.color;
-    el.style.borderColor = info.color;
-    container.appendChild(el);
+  if (container) {
+    container.innerHTML = '';
+    for (const lang of languages) {
+      const info = LANG_COLORS[lang];
+      const el = document.createElement('span');
+      el.className = 'badge';
+      el.textContent = info.label;
+      el.style.color = info.color;
+      el.style.borderColor = info.color;
+      container.appendChild(el);
+    }
   }
 
   decorations = editor.deltaDecorations(decorations, newDecorations);
@@ -238,7 +398,6 @@ async function runCode() {
     const result = await res.json();
     displayResults(result);
 
-    // Broadcast execution result to peers in the same room
     if (socket) {
       socket.emit('run-sync', result);
     }
@@ -297,16 +456,16 @@ function escapeHtml(s) {
 }
 
 // ── Clear Button ──
-document.getElementById('clearBtn').addEventListener('click', () => {
+document.getElementById('clearBtn')?.addEventListener('click', () => {
   document.getElementById('outputContent').innerHTML =
     '<span class="placeholder">Press ▶ Run or Ctrl+Enter to execute…</span>';
 });
 
 // ── Run Button ──
-document.getElementById('runBtn').addEventListener('click', () => runCode());
+document.getElementById('runBtn')?.addEventListener('click', () => runCode());
 
-// ── Share Button (Copy Link like Google Docs) ──
-document.getElementById('shareBtn').addEventListener('click', async () => {
+// ── Share Button (Copy Link) ──
+document.getElementById('shareBtn')?.addEventListener('click', async () => {
   const shareBtn = document.getElementById('shareBtn');
   const shareText = document.getElementById('shareText');
   const shareUrl = window.location.href;
@@ -324,10 +483,11 @@ document.getElementById('shareBtn').addEventListener('click', async () => {
   }
 });
 
-// ── Resize Handle ──
+// ── Terminal Resizer ──
 (function initResize() {
   const handle = document.getElementById('resizeHandle');
   const panel = document.getElementById('outputPanel');
+  if (!handle || !panel) return;
   let startY, startH;
 
   handle.addEventListener('mousedown', (e) => {
@@ -340,6 +500,38 @@ document.getElementById('shareBtn').addEventListener('click', async () => {
       const delta = startY - e.clientY;
       const newH = Math.min(Math.max(startH + delta, 80), window.innerHeight - 250);
       panel.style.height = newH + 'px';
+    }
+
+    function onUp() {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    }
+
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+    e.preventDefault();
+  });
+})();
+
+// ── Sidebar Resizer ──
+(function initSidebarResize() {
+  const resizer = document.getElementById('sidebarResizer');
+  const sidebar = document.getElementById('sidebar');
+  if (!resizer || !sidebar) return;
+  let startX, startW;
+
+  resizer.addEventListener('mousedown', (e) => {
+    startX = e.clientX;
+    startW = sidebar.offsetWidth;
+    document.body.style.cursor = 'ew-resize';
+    document.body.style.userSelect = 'none';
+
+    function onMove(e) {
+      const delta = e.clientX - startX;
+      const newW = Math.min(Math.max(startW + delta, 140), 450);
+      sidebar.style.width = newW + 'px';
     }
 
     function onUp() {
