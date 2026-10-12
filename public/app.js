@@ -1,10 +1,12 @@
 // ═══════════════════════════════════════════════════
-//  PolyGlot IDE — Web Client
-//  Monaco editor + language detection + run via fetch
+//  PolyGlot IDE — Web Client with Live Collaboration
+//  Monaco editor + language detection + Socket.io rooms
 // ═══════════════════════════════════════════════════
 
 let editor;
 let decorations = [];
+let isRemoteUpdate = false;
+let socket = null;
 
 const LANG_COLORS = {
   python:     { color: '#3572A5', label: 'Python 🐍' },
@@ -17,10 +19,22 @@ const LANG_COLORS = {
   cpp:        { color: '#f34b7d', label: 'C++ ⚡' },
 };
 
+// ── Room ID from URL Hash (e.g. #room-4f8a) ──
+function getOrCreateRoom() {
+  let hash = window.location.hash.replace('#', '').trim();
+  if (!hash) {
+    hash = 'room-' + Math.random().toString(36).substring(2, 8);
+    window.location.hash = hash;
+  }
+  return hash;
+}
+
+const currentRoom = getOrCreateRoom();
+
 function getSampleCode() {
   return [
     '# Welcome to PolyGlot IDE!',
-    '# Write code in ANY language — it just works.',
+    '# Share the URL to collaborate in real-time!',
     '',
     'print("Hello from Python! 🐍")',
     '',
@@ -83,9 +97,16 @@ require(['vs/editor/editor.main'], function () {
     suggest: { showWords: false },
   });
 
-  // Detect languages on change (debounced)
+  // Real-time broadcast on change
   let detectTimer;
   editor.onDidChangeModelContent(() => {
+    if (!isRemoteUpdate && socket) {
+      socket.emit('code-change', {
+        room: currentRoom,
+        code: editor.getValue()
+      });
+    }
+
     clearTimeout(detectTimer);
     detectTimer = setTimeout(updateLanguageBadges, 300);
   });
@@ -100,7 +121,54 @@ require(['vs/editor/editor.main'], function () {
 
   // Initial detection
   updateLanguageBadges();
+
+  // Setup WebSockets after editor is ready
+  initRealtime();
 });
+
+// ── Real-Time WebSockets Collaboration ──
+function initRealtime() {
+  if (typeof io === 'undefined') return;
+
+  socket = io();
+
+  socket.on('connect', () => {
+    socket.emit('join-room', currentRoom);
+  });
+
+  // Initial code sync from server for this room
+  socket.on('code-sync', (code) => {
+    if (code && editor && code !== editor.getValue()) {
+      isRemoteUpdate = true;
+      editor.setValue(code);
+      isRemoteUpdate = false;
+      updateLanguageBadges();
+    }
+  });
+
+  // Live edits from other users
+  socket.on('code-update', (data) => {
+    if (editor && data.code !== editor.getValue()) {
+      isRemoteUpdate = true;
+      const pos = editor.getPosition();
+      editor.setValue(data.code);
+      if (pos) editor.setPosition(pos);
+      isRemoteUpdate = false;
+      updateLanguageBadges();
+    }
+  });
+
+  // Live user count
+  socket.on('user-count', (count) => {
+    const el = document.getElementById('userCount');
+    if (el) el.textContent = `${count} live`;
+  });
+
+  // Live run result from peer
+  socket.on('run-result', (result) => {
+    displayResults(result);
+  });
+}
 
 // ── Language Detection → Badges + Gutter Bars ──
 async function updateLanguageBadges() {
@@ -117,7 +185,6 @@ async function updateLanguageBadges() {
     });
     detectedLines = await res.json();
   } catch (err) {
-    console.error('Detection request failed:', err);
     return;
   }
 
@@ -152,11 +219,10 @@ async function updateLanguageBadges() {
     container.appendChild(el);
   }
 
-  // Update gutter decorations
   decorations = editor.deltaDecorations(decorations, newDecorations);
 }
 
-// ── Run Code ──
+// ── Run Code (Local + Sync across peers) ──
 async function runCode() {
   const btn = document.getElementById('runBtn');
   btn.innerHTML = '<span class="run-icon">⏳</span> Running…';
@@ -171,6 +237,11 @@ async function runCode() {
     });
     const result = await res.json();
     displayResults(result);
+
+    // Broadcast execution result to peers in the same room
+    if (socket) {
+      socket.emit('run-sync', result);
+    }
   } catch (e) {
     showOutput('Execution error: ' + e.message, true);
   } finally {
@@ -233,6 +304,25 @@ document.getElementById('clearBtn').addEventListener('click', () => {
 
 // ── Run Button ──
 document.getElementById('runBtn').addEventListener('click', () => runCode());
+
+// ── Share Button (Copy Link like Google Docs) ──
+document.getElementById('shareBtn').addEventListener('click', async () => {
+  const shareBtn = document.getElementById('shareBtn');
+  const shareText = document.getElementById('shareText');
+  const shareUrl = window.location.href;
+
+  try {
+    await navigator.clipboard.writeText(shareUrl);
+    shareBtn.classList.add('copied');
+    shareText.textContent = 'Link Copied! ✓';
+    setTimeout(() => {
+      shareBtn.classList.remove('copied');
+      shareText.textContent = 'Share';
+    }, 2000);
+  } catch (err) {
+    prompt('Copy this share link:', shareUrl);
+  }
+});
 
 // ── Resize Handle ──
 (function initResize() {
