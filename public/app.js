@@ -409,7 +409,7 @@ async function runCode() {
   }
 }
 
-// ── Display Results ──
+// ── Display Results (Clean Unified Terminal Output) ──
 function displayResults(result) {
   const el = document.getElementById('outputContent');
   el.innerHTML = '';
@@ -419,28 +419,25 @@ function displayResults(result) {
     return;
   }
 
+  let hasOutput = false;
   for (const r of result.results) {
-    const info = LANG_COLORS[r.language] || { color: '#8b949e', label: r.language };
-
-    const header = document.createElement('div');
-    header.className = 'lang-label';
-    header.style.color = info.color;
-    header.textContent = '── ' + info.label + ' ──';
-    el.appendChild(header);
-
-    const line = document.createElement('div');
     if (r.error) {
-      line.className = 'error-text';
-      line.textContent = r.error;
-    } else {
-      line.className = 'success-text';
-      line.textContent = r.output || '(no output)';
+      const errEl = document.createElement('div');
+      errEl.className = 'error-text';
+      errEl.textContent = r.error;
+      el.appendChild(errEl);
+      hasOutput = true;
+    } else if (r.output) {
+      const outEl = document.createElement('div');
+      outEl.className = 'success-text';
+      outEl.textContent = r.output;
+      el.appendChild(outEl);
+      hasOutput = true;
     }
-    el.appendChild(line);
+  }
 
-    const spacer = document.createElement('div');
-    spacer.style.height = '8px';
-    el.appendChild(spacer);
+  if (!hasOutput) {
+    el.innerHTML = '<span class="placeholder">(Program finished with no output)</span>';
   }
 }
 
