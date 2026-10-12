@@ -1,0 +1,11 @@
+node_modules
+.system_generated
+.user_uploaded
+*.log
+*.exe
+*.o
+*.obj
+*.pdb
+temp.*
+test_gnu.*
+test.*
