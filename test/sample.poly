@@ -1,0 +1,12 @@
+# PolyGlot IDE — Sample Code
+# This file demonstrates multiple languages in one file!
+
+print("Hello from Python! 🐍")
+
+System.out.println("Hello from Java! ☕");
+
+printf("Hello from C! 🔧\n");
+
+cout << "Hello from C++! ⚡" << endl;
+
+console.log("Hello from JavaScript! 🌐");

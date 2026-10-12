@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PolyGlot IDE</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Title Bar -->
+  <div class="titlebar">
+    <div class="titlebar-left">
+      <span class="logo">◈</span>
+      <span class="title">PolyGlot IDE</span>
+    </div>
+    <div class="titlebar-right">
+      <span class="shortcut-hint">Ctrl+Enter to run</span>
+    </div>
+  </div>
+
+  <!-- Main Layout -->
+  <div class="container">
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <div class="language-badges" id="languageBadges"></div>
+      <button class="run-btn" id="runBtn">
+        <span class="run-icon">▶</span> Run
+      </button>
+    </div>
+
+    <!-- Editor -->
+    <div class="editor-area" id="editorArea">
+      <div id="editor"></div>
+    </div>
+
+    <!-- Resize Handle -->
+    <div class="resize-handle" id="resizeHandle"></div>
+
+    <!-- Output Panel -->
+    <div class="output-panel" id="outputPanel">
+      <div class="output-header">
+        <span>Output</span>
+        <button class="output-clear" id="clearBtn">Clear</button>
+      </div>
+      <div class="output-content" id="outputContent">
+        <span class="placeholder">Press ▶ Run or Ctrl+Enter to execute…</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Monaco from CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/loader.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

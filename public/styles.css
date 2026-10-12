@@ -1,0 +1,282 @@
+/* ═══════════════════════════════════════════
+   PolyGlot IDE — Clean Dark Theme
+   ═══════════════════════════════════════════ */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --bg:          #0d1117;
+  --bg-panel:    #161b22;
+  --bg-hover:    #21262d;
+  --text:        #e6edf3;
+  --text-dim:    #8b949e;
+  --accent:      #58a6ff;
+  --green:       #3fb950;
+  --red:         #f85149;
+  --orange:      #d29922;
+  --border:      #30363d;
+  --radius:      8px;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ── Title Bar ── */
+
+.titlebar {
+  height: 38px;
+  background: var(--bg-panel);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--border);
+  -webkit-app-region: drag;
+  user-select: none;
+}
+
+.titlebar-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.logo {
+  font-size: 18px;
+  color: var(--accent);
+}
+
+.title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dim);
+  letter-spacing: 0.3px;
+}
+
+.titlebar-right {
+  -webkit-app-region: no-drag;
+}
+
+.shortcut-hint {
+  font-size: 11px;
+  color: var(--text-dim);
+  opacity: 0.6;
+}
+
+/* ── Main Container ── */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 38px);
+}
+
+/* ── Toolbar ── */
+
+.toolbar {
+  height: 46px;
+  background: var(--bg-panel);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.run-btn {
+  background: var(--green);
+  color: #000;
+  border: none;
+  padding: 7px 18px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+  -webkit-app-region: no-drag;
+}
+
+.run-btn:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.run-btn:active {
+  transform: scale(0.97);
+}
+
+.run-btn.running {
+  background: var(--orange);
+  pointer-events: none;
+}
+
+.run-icon {
+  font-size: 11px;
+}
+
+/* ── Language Badges ── */
+
+.language-badges {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.badge {
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--bg-hover);
+  border: 1px solid var(--border);
+  letter-spacing: 0.3px;
+  transition: all 0.2s ease;
+}
+
+/* ── Editor ── */
+
+.editor-area {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+
+#editor {
+  width: 100%;
+  height: 100%;
+}
+
+/* ── Output Panel ── */
+
+.output-panel {
+  height: 200px;
+  background: var(--bg-panel);
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  transition: height 0.1s ease;
+}
+
+.output-header {
+  height: 34px;
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.output-clear {
+  background: none;
+  border: 1px solid transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+  -webkit-app-region: no-drag;
+}
+
+.output-clear:hover {
+  background: var(--bg-hover);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.output-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 14px;
+  font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.output-content .placeholder {
+  color: var(--text-dim);
+  font-style: italic;
+  opacity: 0.7;
+}
+
+.output-content .lang-label {
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  margin-top: 4px;
+}
+
+.output-content .error-text {
+  color: var(--red);
+}
+
+.output-content .success-text {
+  color: var(--green);
+}
+
+/* ── Resize Handle ── */
+
+.resize-handle {
+  height: 4px;
+  cursor: ns-resize;
+  position: relative;
+  background: transparent;
+  z-index: 10;
+}
+
+.resize-handle::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 40px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--border);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.resize-handle:hover::after {
+  opacity: 1;
+  background: var(--accent);
+}
+
+/* ── Language Decoration Bars (Monaco gutter) ── */
+
+.lang-decoration-python     { background: #3572A5 !important; width: 3px !important; margin-left: 3px; border-radius: 1px; }
+.lang-decoration-rust       { background: #dea584 !important; width: 3px !important; margin-left: 3px; border-radius: 1px; }
+.lang-decoration-go         { background: #00ADD8 !important; width: 3px !important; margin-left: 3px; border-radius: 1px; }
+.lang-decoration-typescript { background: #3178c6 !important; width: 3px !important; margin-left: 3px; border-radius: 1px; }
+.lang-decoration-javascript { background: #f1e05a !important; width: 3px !important; margin-left: 3px; border-radius: 1px; }
+.lang-decoration-java       { background: #b07219 !important; width: 3px !important; margin-left: 3px; border-radius: 1px; }
+.lang-decoration-c          { background: #555555 !important; width: 3px !important; margin-left: 3px; border-radius: 1px; }
+.lang-decoration-cpp        { background: #f34b7d !important; width: 3px !important; margin-left: 3px; border-radius: 1px; }
+
+/* ── Scrollbar ── */
+
+::-webkit-scrollbar          { width: 8px; }
+::-webkit-scrollbar-track    { background: var(--bg-panel); }
+::-webkit-scrollbar-thumb    { background: var(--bg-hover); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #484f58; }
