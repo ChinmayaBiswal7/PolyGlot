@@ -585,26 +585,60 @@ function renderWebPreview() {
     htmlContent = projectFiles['web/index.html'];
     url = 'http://localhost/web/index.html';
   } else {
-    htmlContent = `
-      <body style="font-family: sans-serif; padding: 30px; background: #0f172a; color: #f8fafc; text-align: center;">
-        <h2 style="color: #38bdf8;">🌐 No HTML File Active</h2>
-        <p>Open <code>web/index.html</code> or create an <code>.html</code> file to see live preview.</p>
-      </body>
-    `;
+    htmlContent = `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="font-family: system-ui, sans-serif; padding: 40px 20px; background: #0f172a; color: #f8fafc; text-align: center;">
+  <h2 style="color: #38bdf8; margin-bottom: 8px;">🌐 No HTML File Active</h2>
+  <p style="color: #94a3b8;">Open <code>web/index.html</code> in the file tree or click the button below:</p>
+  <button onclick="window.parent.postMessage('open-web-sample','*')" style="margin-top: 15px; padding: 8px 18px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;">
+    Open web/index.html
+  </button>
+</body>
+</html>`;
   }
 
   if (urlBar) urlBar.textContent = url;
-  iframe.srcdoc = htmlContent;
+
+  // Render content reliably into iframe
+  try {
+    const doc = iframe.contentDocument || iframe.contentWindow?.document;
+    if (doc) {
+      doc.open();
+      doc.write(htmlContent);
+      doc.close();
+    } else {
+      iframe.srcdoc = htmlContent;
+    }
+  } catch (err) {
+    iframe.srcdoc = htmlContent;
+  }
 }
+
+// Support click from empty placeholder
+window.addEventListener('message', (e) => {
+  if (e.data === 'open-web-sample') {
+    switchFile('web/index.html');
+    switchToWebPreview();
+  }
+});
 
 document.getElementById('reloadPreviewBtn')?.addEventListener('click', renderWebPreview);
 document.getElementById('openTabPreviewBtn')?.addEventListener('click', () => {
   const iframe = document.getElementById('previewIframe');
-  if (iframe && iframe.srcdoc) {
-    const w = window.open();
-    w.document.open();
-    w.document.write(iframe.srcdoc);
-    w.document.close();
+  let content = '';
+  try {
+    content = iframe?.contentDocument?.documentElement?.outerHTML || iframe?.srcdoc;
+  } catch (e) {
+    content = iframe?.srcdoc;
+  }
+  if (!content && activeFileName.endsWith('.html')) {
+    content = editor ? editor.getValue() : projectFiles[activeFileName];
+  }
+  if (content) {
+    const blob = new Blob([content], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
   }
 });
 
