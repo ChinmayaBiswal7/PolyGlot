@@ -112,6 +112,11 @@ function wrapJavaScript(code) {
     }
   }
 
+  const varMatches = [...code.matchAll(/\b(?:const|let|var)\s+([a-zA-Z_$][a-zA-Z0-9_$]*)/g)].map(m => m[1]);
+  const assignMatches = [...code.matchAll(/^\s*([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=/gm)].map(m => m[1]);
+  const allVars = [...new Set([...varMatches, ...assignMatches])];
+  const exportSnippets = allVars.map(v => `try { if (typeof ${v} !== 'undefined') _export['${v}'] = ${v}; } catch(e){}`).join('\n');
+
   return `const fs = require('fs');
 const _shared_file = "${SHARED_PATH_ESC}";
 let _shared = {};
@@ -135,6 +140,7 @@ for (const [k, v] of Object.entries(global)) {
     _export[k] = v;
   }
 }
+${exportSnippets}
 try {
   const current = fs.existsSync(_shared_file) ? JSON.parse(fs.readFileSync(_shared_file, 'utf8')) : {};
   Object.assign(current, _export);
@@ -214,7 +220,12 @@ void poly_set_int(const char* key, int val) {
     }
   }
 
-  let mainBody = code.includes('int main') ? code : `int main() {\n${autoLoads}${code}\n    return 0;\n}`;
+  let mainBody;
+  if (/int\s+main\s*\(/.test(code)) {
+    mainBody = code.replace(/(int\s+main\s*\([^)]*\)\s*\{)/, `$1\n${autoLoads}`);
+  } else {
+    mainBody = `int main() {\n${autoLoads}${code}\n    return 0;\n}`;
+  }
   return `${headers}\n${helperFunctions}\n${mainBody}`;
 }
 
@@ -239,6 +250,13 @@ function wrapJava(code) {
     } else if (typeof v === 'string') {
       autoDeclarations += `        String ${k} = "${v.replace(/"/g, '\\"')}";\n`;
     }
+  }
+
+  if (code.includes('class PolyTemp') || code.includes('public class')) {
+    if (code.includes('public static void main')) {
+      return code.replace(/(public\s+static\s+void\s+main\s*\([^)]*\)\s*\{)/, `$1\n${autoDeclarations}`);
+    }
+    return code;
   }
 
   return [
@@ -270,7 +288,8 @@ function wrapGo(code) {
   }
 
   if (code.includes('func main()')) {
-    return code.includes('package main') ? code : `package main\n\nimport "fmt"\n\n${code}`;
+    let goCode = code.includes('package main') ? code : `package main\n\nimport "fmt"\n\n${code}`;
+    return goCode.replace(/(func\s+main\s*\(\s*\)\s*\{)/, `$1\n${autoDeclarations}`);
   }
 
   return `package main
@@ -301,7 +320,7 @@ function wrapRust(code) {
   }
 
   if (code.includes('fn main()')) {
-    return code;
+    return code.replace(/(fn\s+main\s*\(\s*\)\s*\{)/, `$1\n${autoDeclarations}`);
   }
 
   return `fn main() {

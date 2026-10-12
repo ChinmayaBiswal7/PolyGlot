@@ -24,6 +24,7 @@ const LANGUAGE_PATTERNS = {
       /^\s*range\s*\(/,
       /^\s*len\s*\(/,
       /\[\s*\w+\s+for\s+\w+\s+in\s+/,
+      /#\s*.*python/i,
       /^\s*#[^i][^n][^c]/,
     ],
     moderate: [
@@ -31,7 +32,7 @@ const LANGUAGE_PATTERNS = {
       /^\s*if\s+.*:\s*$/,
       /^\s*for\s+\w+\s+in\s+/,
       /^\s*while\s+.*:\s*$/,
-      /^\s*return\s+/,
+      /^\s*return(?:\s+[^;]+)?\s*$/,
       /^\s*\w+\s*=\s*\[.*\]\s*$/,
     ],
     weak: []
@@ -50,11 +51,11 @@ const LANGUAGE_PATTERNS = {
       /\bVec::new\(\)/,
       /\bString::from\(/,
       /->\s*(i32|u32|i64|u64|String|bool|usize)\b/,
+      /\/\/\s*.*(?:\brust\b)/i,
     ],
     moderate: [
       /^\s*fn\s+\w+\s*\(/,
       /\bmut\s+\w+/,
-      /\/\/\s*.*Rust/i,
     ],
     weak: [
       /;\s*$/,
@@ -73,10 +74,10 @@ const LANGUAGE_PATTERNS = {
       /:=\s*/,
       /\bgo\s+\w+\s*\(/,
       /\bmake\s*\(\s*(chan|map|\[\])/,
+      /\/\/\s*.*(?:\bgo\b|\bgolang\b)/i,
     ],
     moderate: [
       /^\s*type\s+\w+\s+struct/,
-      /\/\/\s*.*Go\b/i,
     ],
     weak: []
   },
@@ -88,11 +89,9 @@ const LANGUAGE_PATTERNS = {
       /^\s*type\s+\w+\s*=/,
       /as\s+(string|number|boolean|any)/,
       /<\s*T\s*>/,
+      /\/\/\s*.*(?:\btypescript\b|\bts\b)/i,
     ],
-    moderate: [
-      /\/\/\s*.*TypeScript/i,
-      /\/\/\s*.*TS\b/i,
-    ],
+    moderate: [],
     weak: []
   },
 
@@ -110,6 +109,7 @@ const LANGUAGE_PATTERNS = {
       /new\s+ArrayList/,
       /new\s+HashMap/,
       /\.println\s*\(/,
+      /\/\/\s*.*(?:\bjava\b)/i,
     ],
     moderate: [
       /^\s*(public|private|protected)\s+/,
@@ -118,7 +118,6 @@ const LANGUAGE_PATTERNS = {
       /\.equals\s*\(/,
       /\.length\(\)/,
       /\.toString\s*\(/,
-      /\/\/\s*.*Java\b/i,
     ],
     weak: [
       /;\s*$/,
@@ -133,7 +132,7 @@ const LANGUAGE_PATTERNS = {
       /^\s*#include\s*<stdlib\.h>/,
       /^\s*#include\s*<string\.h>/,
       /^\s*#include\s*<math\.h>/,
-      /^\s*int\s+main\s*\(\s*(void)?\s*\)/,
+      /^\s*int\s+main\s*\(/,
       /\bmalloc\s*\(/,
       /\bfree\s*\(/,
       /\bsizeof\s*\(/,
@@ -141,6 +140,7 @@ const LANGUAGE_PATTERNS = {
       /\bputs\s*\(/,
       /^\s*int\s+\w+\s*=\s*[^;]+;/,
       /^\s*for\s*\(\s*int\s+\w+/,
+      /\/\/\s*.*(?:\bC\b|clang)/i,
     ],
     moderate: [
       /^\s*#include\s*<[^i]/,
@@ -148,7 +148,6 @@ const LANGUAGE_PATTERNS = {
       /^\s*typedef\s+/,
       /^\s*struct\s+\w+/,
       /\*\s*\w+\s*=/,
-      /\/\/\s*Step\s*\d*.*C\b/i,
     ],
     weak: [
       /;\s*$/,
@@ -168,13 +167,13 @@ const LANGUAGE_PATTERNS = {
       /^\s*using\s+namespace\s+std/,
       /\bstd::/,
       /\bendl\b/,
+      /\/\/\s*.*(?:c\+\+|cpp\b)/i,
     ],
     moderate: [
       /^\s*template\s*</,
       /^\s*namespace\s+/,
       /^\s*auto\s+\w+/,
       /\w+::\w+/,
-      /\/\/\s*Step\s*\d*.*C\+\+/i,
     ],
     weak: [
       /;\s*$/,
@@ -203,12 +202,11 @@ const LANGUAGE_PATTERNS = {
       /\.then\s*\(/,
       /\.catch\s*\(/,
       /\bPromise\./,
+      /\/\/\s*.*(?:\bjavascript\b|\bjs\b)/i,
     ],
     moderate: [
       /===|!==/,
       /`[^`]*\$\{/,
-      /\/\/\s*Step\s*\d*.*JavaScript/i,
-      /\/\/\s*Step\s*\d*.*JS/i,
     ],
     weak: [
       /;\s*$/,

@@ -15,6 +15,10 @@ function isSameFamily(langA, langB) {
       (langB === 'javascript' || langB === 'typescript')) {
     return true;
   }
+  if ((langA === 'c' || langA === 'cpp') &&
+      (langB === 'c' || langB === 'cpp')) {
+    return true;
+  }
   return false;
 }
 
@@ -61,7 +65,18 @@ function splitCode(code) {
       continue;
     }
 
-    if (!current || !isSameFamily(current.language, line.language)) {
+    const isExplicitMarker = /^\s*(?:\/\/|#|\/\*)\s*(?:stage|step|part|language|\bcode\b|──|-+)?\s*.*?(?:python|javascript|typescript|\bjs\b|\bts\b|\bc\b|c\+\+|\bcpp\b|\brust\b|\bgo\b|\bgolang\b|\bjava\b)/i.test(line.content);
+
+    // If already in a block, only switch if confidence is high or an explicit marker is present
+    if (current && line.confidence < 0.6 && !isExplicitMarker && !isSameFamily(current.language, line.language)) {
+      current.lines.push(line.content);
+      current.originalLineNumbers.push(line.lineNumber);
+      continue;
+    }
+
+    const shouldStartNew = !current || isExplicitMarker || !isSameFamily(current.language, line.language);
+
+    if (shouldStartNew) {
       if (current) blocks.push(current);
       current = {
         language: line.language,
@@ -69,9 +84,11 @@ function splitCode(code) {
         originalLineNumbers: [line.lineNumber],
       };
     } else {
-      // If either line in block is TypeScript, elevate block to TypeScript
       if (line.language === 'typescript') {
         current.language = 'typescript';
+      }
+      if (line.language === 'cpp') {
+        current.language = 'cpp';
       }
       current.lines.push(line.content);
       current.originalLineNumbers.push(line.lineNumber);
