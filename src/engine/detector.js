@@ -109,6 +109,8 @@ const LANGUAGE_PATTERNS = {
       /new\s+ArrayList/,
       /new\s+HashMap/,
       /\.println\s*\(/,
+      /^\s*String\s+\w+\s*=/,
+      /\bscanner\.\w+/,
       /\/\/\s*.*(?:\bjava\b)/i,
     ],
     moderate: [
@@ -139,6 +141,7 @@ const LANGUAGE_PATTERNS = {
       /\bgets\s*\(/,
       /\bputs\s*\(/,
       /^\s*int\s+\w+\s*=\s*[^;]+;/,
+      /^\s*char\s+(?:\*\s*\w+|\w+\s*\[\s*\]|\w+)\s*=/,
       /^\s*for\s*\(\s*int\s+\w+/,
       /\/\/\s*.*(?:\bC\b|clang)/i,
     ],

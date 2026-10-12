@@ -206,6 +206,41 @@ void poly_set_int(const char* key, int val) {
         fclose(f);
     }
 }
+
+void poly_set_str(const char* key, const char* val) {
+    FILE *f = fopen("${SHARED_PATH_ESC}", "r");
+    char buf[8192] = "{}";
+    if (f) {
+        size_t n = fread(buf, 1, sizeof(buf)-1, f);
+        fclose(f);
+        buf[n] = '\\0';
+    }
+    char newbuf[8192];
+    char pattern[128];
+    sprintf(pattern, "\\"%s\\":", key);
+    char *p = strstr(buf, pattern);
+    if (p) {
+        char *end = strpbrk(p, ",}");
+        if (end) {
+            *p = '\\0';
+            sprintf(newbuf, "%s\\"%s\\": \\"%s\\"%s", buf, key, val, end);
+        } else {
+            sprintf(newbuf, "{\\"%s\\": \\"%s\\"}", key, val);
+        }
+    } else {
+        if (strlen(buf) > 2) {
+            buf[strlen(buf)-1] = '\\0';
+            sprintf(newbuf, "%s, \\"%s\\": \\"%s\\"}", buf, key, val);
+        } else {
+            sprintf(newbuf, "{\\"%s\\": \\"%s\\"}", key, val);
+        }
+    }
+    f = fopen("${SHARED_PATH_ESC}", "w");
+    if (f) {
+        fputs(newbuf, f);
+        fclose(f);
+    }
+}
 `;
 
   let sharedMemoryData = {};
@@ -220,11 +255,20 @@ void poly_set_int(const char* key, int val) {
     }
   }
 
+  const cCharVars = [...code.matchAll(/\bchar\s+(?:\*\s*([a-zA-Z_$][a-zA-Z0-9_$]*)|([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\[)/g)].map(m => m[1] || m[2]);
+  const cIntVars = [...code.matchAll(/\bint\s+([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=/g)].map(m => m[1]);
+  let autoExports = '';
+  for (const v of cCharVars) autoExports += `    poly_set_str("${v}", ${v});\n`;
+  for (const v of cIntVars) autoExports += `    poly_set_int("${v}", ${v});\n`;
+
   let mainBody;
   if (/int\s+main\s*\(/.test(code)) {
     mainBody = code.replace(/(int\s+main\s*\([^)]*\)\s*\{)/, `$1\n${autoLoads}`);
+    if (autoExports) {
+      mainBody = mainBody.replace(/return\s+0\s*;/, `${autoExports}    return 0;`);
+    }
   } else {
-    mainBody = `int main() {\n${autoLoads}${code}\n    return 0;\n}`;
+    mainBody = `int main() {\n${autoLoads}${code}\n${autoExports}    return 0;\n}`;
   }
   return `${headers}\n${helperFunctions}\n${mainBody}`;
 }
@@ -252,6 +296,40 @@ function wrapJava(code) {
     }
   }
 
+  if (/\bscanner\./i.test(code) && !/new\s+Scanner/i.test(code)) {
+    autoDeclarations += `        Scanner scanner = new Scanner(System.in.available() > 0 ? System.in : new ByteArrayInputStream("World\\n".getBytes()));\n`;
+  }
+
+  const javaStringVars = [...code.matchAll(/\bString\s+([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=/g)].map(m => m[1]);
+  const javaIntVars = [...code.matchAll(/\bint\s+([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=/g)].map(m => m[1]);
+  let javaExports = '';
+  if (javaStringVars.length > 0 || javaIntVars.length > 0) {
+    javaExports += `
+        try {
+            File _f = new File("${SHARED_PATH_ESC}");
+            String _cnt = _f.exists() ? new String(java.nio.file.Files.readAllBytes(_f.toPath()), "UTF-8").trim() : "{}";
+            if (_cnt.endsWith("}")) _cnt = _cnt.substring(0, _cnt.length() - 1);
+            StringBuilder _sb = new StringBuilder(_cnt);
+`;
+    for (const v of javaStringVars) {
+      javaExports += `
+            if (_sb.length() > 1 && !_sb.toString().endsWith("{") && !_sb.toString().endsWith(", ")) _sb.append(", ");
+            _sb.append("\\"${v}\\": \\"" + String.valueOf(${v}).replace("\\"", "\\\\\\\"") + "\\"");
+`;
+    }
+    for (const v of javaIntVars) {
+      javaExports += `
+            if (_sb.length() > 1 && !_sb.toString().endsWith("{") && !_sb.toString().endsWith(", ")) _sb.append(", ");
+            _sb.append("\\"${v}\\": " + ${v});
+`;
+    }
+    javaExports += `
+            if (!_sb.toString().endsWith("}")) _sb.append("}");
+            java.nio.file.Files.write(_f.toPath(), _sb.toString().getBytes("UTF-8"));
+        } catch (Exception _ignored) {}
+`;
+  }
+
   if (code.includes('class PolyTemp') || code.includes('public class')) {
     if (code.includes('public static void main')) {
       return code.replace(/(public\s+static\s+void\s+main\s*\([^)]*\)\s*\{)/, `$1\n${autoDeclarations}`);
@@ -263,9 +341,10 @@ function wrapJava(code) {
     'import java.io.*;',
     'import java.util.*;',
     'public class PolyTemp {',
-    '    public static void main(String[] args) {',
+    '    public static void main(String[] args) throws Exception {',
     autoDeclarations,
     ...code.split('\n').map(l => '        ' + l),
+    javaExports,
     '    }',
     '}'
   ].join('\n');
