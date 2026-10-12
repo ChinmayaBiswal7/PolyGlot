@@ -15,6 +15,7 @@ ENV PORT=10000
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     python3 \
+    python-is-python3 \
     golang-go \
     rustc \
     default-jdk-headless \

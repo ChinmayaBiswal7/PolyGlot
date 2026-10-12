@@ -319,7 +319,8 @@ async function executePython(code) {
   const wrapped = wrapPython(code);
   const file = path.join(TEMP_DIR, 'temp.py');
   fs.writeFileSync(file, wrapped, 'utf8');
-  const r = await run(`python "${file}"`);
+  const pyCmd = process.platform === 'win32' ? 'python' : 'python3';
+  const r = await run(`${pyCmd} "${file}"`);
   return { output: r.stdout.trim(), error: r.exitCode ? r.stderr.trim() : null };
 }
 
