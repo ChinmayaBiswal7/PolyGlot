@@ -61,7 +61,7 @@ io.on('connection', (socket) => {
 // ── API: Execute mixed-language code ──
 app.post('/api/run', async (req, res) => {
   try {
-    const result = await executeCode(req.body.code || '');
+    const result = await executeCode(req.body.code || '', req.body.stdin || '');
     res.json(result);
   } catch (e) {
     res.status(500).json({ error: e.message });

@@ -102,14 +102,27 @@
       <!-- Terminal Resize Handle -->
       <div class="resize-handle" id="resizeHandle"></div>
 
-      <!-- Output Panel -->
+      <!-- Bottom Panel (Output & Stdin Tabs) -->
       <div class="output-panel" id="outputPanel">
         <div class="output-header">
-          <span>Output</span>
+          <div class="panel-tabs">
+            <button class="panel-tab active" id="tabOutputBtn">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+              <span>Output</span>
+            </button>
+            <button class="panel-tab" id="tabInputBtn">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+              <span>Custom Input (stdin)</span>
+              <span class="stdin-dot" id="stdinDot" style="display:none;" title="Input provided">●</span>
+            </button>
+          </div>
           <button class="output-clear" id="clearBtn">Clear</button>
         </div>
         <div class="output-content" id="outputContent">
           <span class="placeholder">Press ▶ Run or Ctrl+Enter to execute…</span>
+        </div>
+        <div class="stdin-container" id="stdinContainer" style="display: none;">
+          <textarea id="stdinInput" class="stdin-textarea" spellcheck="false" placeholder="Enter custom standard input (for scanf, scanner.nextLine(), input(), cin, etc.)..."></textarea>
         </div>
       </div>
 

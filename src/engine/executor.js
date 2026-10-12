@@ -38,10 +38,10 @@ function getEnv() {
   };
 }
 
-function run(command) {
+function run(command, stdinInput = '') {
   return new Promise((resolve) => {
-    exec(command, {
-      timeout: 25000,
+    const child = exec(command, {
+      timeout: 15000,
       encoding: 'utf8',
       cwd: TEMP_DIR,
       env: getEnv()
@@ -52,6 +52,13 @@ function run(command) {
         exitCode: err ? (err.code ?? 1) : 0,
       });
     });
+
+    if (child.stdin) {
+      if (stdinInput) {
+        child.stdin.write(stdinInput + '\n');
+      }
+      child.stdin.end();
+    }
   });
 }
 
@@ -411,31 +418,31 @@ ${code.split('\n').map(l => '    ' + l).join('\n')}
 
 // ── Language Executors ──────────────────────────────
 
-async function executePython(code) {
+async function executePython(code, stdin = '') {
   const wrapped = wrapPython(code);
   const file = path.join(TEMP_DIR, 'temp.py');
   fs.writeFileSync(file, wrapped, 'utf8');
   // -B flag skips writing bytecode (.pyc) to disk
   const pyCmd = process.platform === 'win32' ? 'python -B' : 'python3 -B';
-  const r = await run(`${pyCmd} "${file}"`);
+  const r = await run(`${pyCmd} "${file}"`, stdin);
   return { output: r.stdout.trim(), error: r.exitCode ? r.stderr.trim() : null };
 }
 
-async function executeJavaScript(code) {
+async function executeJavaScript(code, stdin = '') {
   const wrapped = wrapJavaScript(code);
   const file = path.join(TEMP_DIR, 'temp.js');
   fs.writeFileSync(file, wrapped, 'utf8');
-  const r = await run(`node "${file}"`);
+  const r = await run(`node "${file}"`, stdin);
   return { output: r.stdout.trim(), error: r.exitCode ? r.stderr.trim() : null };
 }
 
-async function executeTypeScript(code) {
+async function executeTypeScript(code, stdin = '') {
   const wrapped = wrapJavaScript(code);
   const file = path.join(TEMP_DIR, 'temp.ts');
   fs.writeFileSync(file, wrapped, 'utf8');
 
   // 1. Try native Node strip-types (Node 22+: runs in < 200ms)
-  let r = await run(`node --strip-types "${file}"`);
+  let r = await run(`node --strip-types "${file}"`, stdin);
   if (!r.exitCode) {
     return { output: r.stdout.trim(), error: null };
   }
@@ -443,16 +450,16 @@ async function executeTypeScript(code) {
   // 2. Direct tsx local binary without npx registry lookup
   const localTsx = path.resolve(__dirname, '../../node_modules/tsx/dist/cli.mjs');
   if (fs.existsSync(localTsx)) {
-    r = await run(`node "${localTsx}" "${file}"`);
+    r = await run(`node "${localTsx}" "${file}"`, stdin);
     return { output: r.stdout.trim(), error: r.exitCode ? r.stderr.trim() : null };
   }
 
   // 3. Fallback
-  r = await run(`npx --no-install tsx "${file}"`);
+  r = await run(`npx --no-install tsx "${file}"`, stdin);
   return { output: r.stdout.trim(), error: r.exitCode ? r.stderr.trim() : null };
 }
 
-async function executeC(code) {
+async function executeC(code, stdin = '') {
   const wrapped = wrapC(code);
   const isWin = process.platform === 'win32';
   const src = path.join(TEMP_DIR, 'temp.c');
@@ -460,7 +467,7 @@ async function executeC(code) {
 
   // 1. On Linux/Docker, tcc compiles and runs in memory in ~5ms
   if (!isWin) {
-    const tccRun = await run(`tcc -run "${src}"`);
+    const tccRun = await run(`tcc -run "${src}"`, stdin);
     if (!tccRun.exitCode) {
       return { output: tccRun.stdout.trim(), error: null };
     }
@@ -471,11 +478,11 @@ async function executeC(code) {
   const compile = await run(`gcc -O0 -pipe -s "${src}" -o "${out}"`);
   if (compile.exitCode) return { output: '', error: compile.stderr.trim() };
 
-  const r = await run(`"${out}"`);
+  const r = await run(`"${out}"`, stdin);
   return { output: r.stdout.trim(), error: r.exitCode ? r.stderr.trim() : null };
 }
 
-async function executeCpp(code) {
+async function executeCpp(code, stdin = '') {
   const wrapped = wrapCpp(code);
   const isWin = process.platform === 'win32';
   const src = path.join(TEMP_DIR, 'temp.cpp');
@@ -486,17 +493,17 @@ async function executeCpp(code) {
   const compile = await run(`g++ -O0 -pipe -s "${src}" -o "${out}"`);
   if (compile.exitCode) return { output: '', error: compile.stderr.trim() };
 
-  const r = await run(`"${out}"`);
+  const r = await run(`"${out}"`, stdin);
   return { output: r.stdout.trim(), error: r.exitCode ? r.stderr.trim() : null };
 }
 
-async function executeJava(code) {
-  const wrapped = wrapJava(code);
+async function executeJava(code, stdin = '') {
+  const wrapped = wrapJava(code, stdin);
   const file = path.join(TEMP_DIR, 'PolyTemp.java');
   fs.writeFileSync(file, wrapped, 'utf8');
 
   // 1. Single-file execution (Java 11+: in-memory, no javac required)
-  const direct = await run(`java -Xms32m -Xmx128m -Dfile.encoding=UTF-8 "${file}"`);
+  const direct = await run(`java -Xms32m -Xmx128m -Dfile.encoding=UTF-8 "${file}"`, stdin);
   if (!direct.exitCode) {
     return { output: direct.stdout.trim(), error: null };
   }
@@ -505,19 +512,19 @@ async function executeJava(code) {
   const compile = await run(`javac -J-Xms32m -J-Xmx128m -encoding UTF-8 "${file}"`);
   if (compile.exitCode) return { output: '', error: compile.stderr.trim() };
 
-  const r = await run(`java -Xms32m -Xmx128m -Dfile.encoding=UTF-8 -cp "${TEMP_DIR}" PolyTemp`);
+  const r = await run(`java -Xms32m -Xmx128m -Dfile.encoding=UTF-8 -cp "${TEMP_DIR}" PolyTemp`, stdin);
   return { output: r.stdout.trim(), error: r.exitCode ? r.stderr.trim() : null };
 }
 
-async function executeGo(code) {
+async function executeGo(code, stdin = '') {
   const wrapped = wrapGo(code);
   const file = path.join(TEMP_DIR, 'temp.go');
   fs.writeFileSync(file, wrapped, 'utf8');
-  const r = await run(`go run "${file}"`);
+  const r = await run(`go run "${file}"`, stdin);
   return { output: r.stdout.trim(), error: r.exitCode ? r.stderr.trim() : null };
 }
 
-async function executeRust(code) {
+async function executeRust(code, stdin = '') {
   const wrapped = wrapRust(code);
   const isWin = process.platform === 'win32';
   const src = path.join(TEMP_DIR, 'temp.rs');
@@ -532,7 +539,7 @@ async function executeRust(code) {
   const compile = await run(rustcCmd);
   if (compile.exitCode) return { output: '', error: compile.stderr.trim() };
 
-  const r = await run(`"${out}"`);
+  const r = await run(`"${out}"`, stdin);
   return { output: r.stdout.trim(), error: r.exitCode ? r.stderr.trim() : null };
 }
 
@@ -549,7 +556,7 @@ const EXECUTORS = {
 
 // ── Master Execution Flow ───────────────────────────
 
-async function executeCode(code) {
+async function executeCode(code, stdin = '') {
   ensureTempDir();
   resetSharedMemory();
 
@@ -570,7 +577,7 @@ async function executeCode(code) {
 
     try {
       const codeText = block.lines.join('\n');
-      const { output, error } = await executor(codeText);
+      const { output, error } = await executor(codeText, stdin);
       results.push({ language: block.language, lines: block.originalLineNumbers, output, error });
     } catch (e) {
       results.push({ language: block.language, lines: block.originalLineNumbers, output: '', error: e.message });

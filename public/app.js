@@ -382,18 +382,56 @@ async function updateLanguageBadges() {
   decorations = editor.deltaDecorations(decorations, newDecorations);
 }
 
+// ── Input / Output Tab Switcher ──
+const tabOutputBtn = document.getElementById('tabOutputBtn');
+const tabInputBtn = document.getElementById('tabInputBtn');
+const outputContent = document.getElementById('outputContent');
+const stdinContainer = document.getElementById('stdinContainer');
+const stdinInput = document.getElementById('stdinInput');
+const stdinDot = document.getElementById('stdinDot');
+
+function switchToOutput() {
+  tabOutputBtn?.classList.add('active');
+  tabInputBtn?.classList.remove('active');
+  if (outputContent) outputContent.style.display = 'block';
+  if (stdinContainer) stdinContainer.style.display = 'none';
+}
+
+function switchToInput() {
+  tabInputBtn?.classList.add('active');
+  tabOutputBtn?.classList.remove('active');
+  if (outputContent) outputContent.style.display = 'none';
+  if (stdinContainer) {
+    stdinContainer.style.display = 'flex';
+    stdinInput?.focus();
+  }
+}
+
+tabOutputBtn?.addEventListener('click', switchToOutput);
+tabInputBtn?.addEventListener('click', switchToInput);
+
+stdinInput?.addEventListener('input', () => {
+  if (stdinDot) {
+    stdinDot.style.display = stdinInput.value.trim() ? 'inline' : 'none';
+  }
+});
+
 // ── Run Code (Local + Sync across peers) ──
 async function runCode() {
   const btn = document.getElementById('runBtn');
   btn.innerHTML = '<span class="run-icon">⏳</span> Running…';
   btn.classList.add('running');
 
+  // Switch to output tab so user immediately sees results
+  switchToOutput();
+
   try {
     const code = editor.getValue();
+    const stdin = stdinInput?.value || '';
     const res = await fetch('/api/run', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code })
+      body: JSON.stringify({ code, stdin })
     });
     const rawText = await res.text();
     let result;
