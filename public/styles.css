@@ -859,3 +859,381 @@ body {
   padding: 2px 8px;
   border-radius: 4px;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   🎯 PLACEMENT / STRICT INTERVIEW MODE ("Google Docs IDE" & Proctor)
+   ═══════════════════════════════════════════════════════════════ */
+
+.placement-mode-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, #854d0e 0%, #ca8a04 100%);
+  color: #fef08a;
+  border: 1px solid #eab30866;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.placement-mode-btn:hover {
+  background: linear-gradient(135deg, #a16207 0%, #eab308 100%);
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(234, 179, 8, 0.4);
+}
+
+.interview-proctor-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 44px;
+  background: #111827;
+  border-bottom: 2px solid #ef4444;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  z-index: 9999;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.7);
+  font-family: var(--font-ui);
+}
+
+.banner-left, .banner-center, .banner-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.proctor-badge {
+  background: #ef4444;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+  animation: pulse-red 2s infinite;
+}
+
+@keyframes pulse-red {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.75; }
+}
+
+.proctor-timer {
+  font-family: var(--font-code);
+  font-size: 14px;
+  font-weight: 700;
+  color: #fbbf24;
+}
+
+.proctor-divider {
+  color: #4b5563;
+}
+
+.proctor-problem-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #f3f4f6;
+  max-width: 300px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.strike-counter {
+  background: #374151;
+  color: #f87171;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 5px;
+  border: 1px solid #4b5563;
+}
+
+.proctor-q-btn {
+  background: #1f2937;
+  color: #93c5fd;
+  border: 1px solid #3b82f644;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.proctor-q-btn:hover {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.proctor-end-btn {
+  background: #dc2626;
+  color: #ffffff;
+  border: none;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 14px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.proctor-end-btn:hover {
+  background: #b91c1c;
+}
+
+/* Problem Details Drawer */
+.interview-problem-drawer {
+  background: #0f172a;
+  border-bottom: 1px solid #334155;
+  padding: 12px 18px;
+  max-height: 190px;
+  overflow-y: auto;
+  font-family: var(--font-ui);
+}
+
+.drawer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.drawer-title {
+  color: #38bdf8;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.drawer-close-btn {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.drawer-close-btn:hover {
+  color: #ffffff;
+}
+
+.drawer-body {
+  font-size: 12px;
+  line-height: 1.6;
+  color: #cbd5e1;
+}
+
+.drawer-body pre {
+  background: #1e293b;
+  padding: 6px 10px;
+  border-radius: 5px;
+  font-family: var(--font-code);
+  font-size: 11px;
+  margin: 6px 0;
+  color: #e2e8f0;
+}
+
+/* Modal Dialogs */
+.interview-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.interview-modal {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 10px;
+  width: 90%;
+  max-width: 650px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.8);
+}
+
+.interview-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px;
+  border-bottom: 1px solid #30363d;
+}
+
+.interview-modal-header h3 {
+  margin: 0;
+  font-size: 15px;
+  color: #e6edf3;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.modal-close-icon {
+  background: transparent;
+  border: none;
+  color: #8b949e;
+  font-size: 20px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.modal-close-icon:hover {
+  color: #ffffff;
+}
+
+.interview-modal-body {
+  padding: 16px 18px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.problem-card-item {
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.problem-card-item:hover {
+  border-color: #58a6ff;
+  background: #161b22;
+  transform: translateY(-1px);
+}
+
+.problem-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.problem-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #58a6ff;
+}
+
+.diff-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 3px;
+  text-transform: uppercase;
+}
+
+.diff-badge.easy { background: #064e3b; color: #34d399; }
+.diff-badge.medium { background: #78350f; color: #facc15; }
+.diff-badge.hard { background: #7f1d1d; color: #f87171; }
+
+.problem-card-desc {
+  font-size: 12px;
+  color: #8b949e;
+  line-height: 1.4;
+}
+
+.interview-modal-footer {
+  padding: 12px 18px;
+  border-top: 1px solid #30363d;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.exit-interview-btn {
+  background: #238636;
+  color: #ffffff;
+  border: none;
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.exit-interview-btn:hover {
+  background: #2ea043;
+}
+
+/* Anti-Cheat Warning Toast */
+.anti-cheat-alert {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: #7f1d1d;
+  color: #fef2f2;
+  border: 1px solid #ef4444;
+  border-radius: 8px;
+  padding: 12px 16px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+  z-index: 10001;
+  animation: shake 0.5s ease-in-out;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+
+.alert-icon {
+  font-size: 24px;
+}
+
+.alert-content strong {
+  display: block;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  color: #fca5a5;
+}
+
+.alert-content p {
+  margin: 3px 0 0 0;
+  font-size: 12px;
+  color: #ffffff;
+}
+
+/* Google Docs Editor Raw Styling in Placement Mode */
+body.placement-mode {
+  padding-top: 44px;
+}
+
+body.placement-mode .titlebar {
+  display: none !important;
+}
+
+body.placement-mode .sidebar,
+body.placement-mode .sidebar-resizer {
+  display: none !important;
+}
+
+body.placement-mode .tabs-bar {
+  display: none !important;
+}
+
+body.placement-mode .share-btn,
+body.placement-mode #shareBtn,
+body.placement-mode #placementModeBtn {
+  display: none !important;
+}
+
+body.placement-mode .language-badges {
+  opacity: 0.4;
+  pointer-events: none;
+}
+

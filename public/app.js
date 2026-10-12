@@ -1000,3 +1000,493 @@ window.addEventListener('mouseup', () => {
     document.body.style.userSelect = '';
   }
 });
+
+// ═══════════════════════════════════════════════════════════════
+//  🎯 PLACEMENT / STRICT INTERVIEW MODE ("Google Docs IDE" & Proctor)
+// ═══════════════════════════════════════════════════════════════
+
+const INTERVIEW_PROBLEMS = [
+  {
+    id: 'reverse-linked-list',
+    title: 'Reverse a Linked List',
+    difficulty: 'easy',
+    timeMinutes: 30,
+    description: `
+<strong>Problem:</strong> Given the head of a singly linked list, reverse the list, and return the reversed list.<br><br>
+<strong>Rule:</strong> Do NOT use any built-in data structure functions or high-level methods. Define your own Node struct/class and reverse pointers iteratively or recursively.
+<pre>Example:
+Input:  1 -> 2 -> 3 -> 4 -> 5 -> NULL
+Output: 5 -> 4 -> 3 -> 2 -> 1 -> NULL</pre>
+    `,
+    starterCode: `// INTERVIEW PROBLEM: Reverse a Singly Linked List
+// Note: Write all data structures, functions, and tests manually.
+
+#include <iostream>
+using namespace std;
+
+struct ListNode {
+    int val;
+    ListNode* next;
+    ListNode(int x) : val(x), next(nullptr) {}
+};
+
+ListNode* reverseList(ListNode* head) {
+    ListNode* prev = nullptr;
+    ListNode* curr = head;
+    while (curr != nullptr) {
+        ListNode* nextNode = curr->next;
+        curr->next = prev;
+        prev = curr;
+        curr = nextNode;
+    }
+    return prev;
+}
+
+void printList(ListNode* head) {
+    while (head != nullptr) {
+        cout << head->val << " -> ";
+        head = head->next;
+    }
+    cout << "NULL" << endl;
+}
+
+int main() {
+    ListNode* head = new ListNode(1);
+    head->next = new ListNode(2);
+    head->next->next = new ListNode(3);
+    head->next->next->next = new ListNode(4);
+
+    cout << "Original: ";
+    printList(head);
+
+    head = reverseList(head);
+
+    cout << "Reversed: ";
+    printList(head);
+    return 0;
+}
+`
+  },
+  {
+    id: 'manual-quick-sort',
+    title: 'Manual QuickSort Algorithm',
+    difficulty: 'medium',
+    timeMinutes: 45,
+    description: `
+<strong>Problem:</strong> Implement the QuickSort algorithm from scratch on an unsorted array.<br><br>
+<strong>Rule:</strong> Built-in sorting functions (e.g., <code>std::sort</code>, <code>Arrays.sort</code>, <code>sorted()</code>) are strictly prohibited. Implement your own partitioning and pivot swapping functions.
+<pre>Input:  [38, 27, 43, 3, 9, 82, 10]
+Output: [3, 9, 10, 27, 38, 43, 82]</pre>
+    `,
+    starterCode: `// INTERVIEW PROBLEM: Implement QuickSort from Scratch
+// Rule: No std::sort or Arrays.sort allowed. Define partition and recursion manually.
+
+#include <iostream>
+#include <vector>
+using namespace std;
+
+int partition(vector<int>& arr, int low, int high) {
+    int pivot = arr[high];
+    int i = low - 1;
+    for (int j = low; j < high; j++) {
+        if (arr[j] <= pivot) {
+            i++;
+            int temp = arr[i];
+            arr[i] = arr[j];
+            arr[j] = temp;
+        }
+    }
+    int temp = arr[i + 1];
+    arr[i + 1] = arr[high];
+    arr[high] = temp;
+    return i + 1;
+}
+
+void quickSort(vector<int>& arr, int low, int high) {
+    if (low < high) {
+        int pi = partition(arr, low, high);
+        quickSort(arr, low, pi - 1);
+        quickSort(arr, pi + 1, high);
+    }
+}
+
+int main() {
+    vector<int> nums = {38, 27, 43, 3, 9, 82, 10};
+    cout << "Before: ";
+    for (int n : nums) cout << n << " ";
+    cout << endl;
+
+    quickSort(nums, 0, nums.size() - 1);
+
+    cout << "After:  ";
+    for (int n : nums) cout << n << " ";
+    cout << endl;
+    return 0;
+}
+`
+  },
+  {
+    id: 'lru-cache',
+    title: 'Design LRU Cache from Scratch',
+    difficulty: 'hard',
+    timeMinutes: 60,
+    description: `
+<strong>Problem:</strong> Design and implement a data structure for Least Recently Used (LRU) Cache.<br><br>
+<strong>Rule:</strong> Implement both <code>get</code> and <code>put</code> operations in O(1) time complexity using a custom doubly linked list and hash map.
+<pre>Operations:
+LRUCache cache = new LRUCache(2);
+cache.put(1, 1);
+cache.put(2, 2);
+cache.get(1);    // returns 1
+cache.put(3, 3); // evicts key 2</pre>
+    `,
+    starterCode: `# INTERVIEW PROBLEM: LRU Cache Implementation
+# Rule: Build custom doubly linked list nodes manually for O(1) evictions.
+
+class Node:
+    def __init__(self, key, val):
+        self.key = key
+        self.val = val
+        self.prev = None
+        self.next = None
+
+class LRUCache:
+    def __init__(self, capacity: int):
+        self.cap = capacity
+        self.cache = {}
+        self.head = Node(0, 0)
+        self.tail = Node(0, 0)
+        self.head.next = self.tail
+        self.tail.prev = self.head
+
+    def _remove(self, node):
+        prev, nxt = node.prev, node.next
+        prev.next = nxt
+        nxt.prev = prev
+
+    def _insert(self, node):
+        nxt = self.head.next
+        self.head.next = node
+        node.prev = self.head
+        node.next = nxt
+        nxt.prev = node
+
+    def get(self, key: int) -> int:
+        if key in self.cache:
+            node = self.cache[key]
+            self._remove(node)
+            self._insert(node)
+            return node.val
+        return -1
+
+    def put(self, key: int, value: int) -> None:
+        if key in self.cache:
+            self._remove(self.cache[key])
+        node = Node(key, value)
+        self.cache[key] = node
+        self._insert(node)
+        if len(self.cache) > self.cap:
+            lru = self.tail.prev
+            self._remove(lru)
+            del self.cache[lru.key]
+
+cache = LRUCache(2)
+cache.put(1, 100)
+cache.put(2, 200)
+print("Get 1:", cache.get(1))
+cache.put(3, 300) # evicts key 2
+print("Get 2 (evicted):", cache.get(2))
+print("Get 3:", cache.get(3))
+`
+  }
+];
+
+let isPlacementMode = false;
+let currentProblem = INTERVIEW_PROBLEMS[0];
+let proctorTimerInterval = null;
+let proctorTimeRemainingSeconds = 45 * 60;
+let strikeCount = 0;
+const MAX_STRIKES = 3;
+let testStartTime = null;
+
+const placementModeBtn = document.getElementById('placementModeBtn');
+const proctorBanner = document.getElementById('interviewProctorBanner');
+const problemDrawer = document.getElementById('interviewProblemDrawer');
+const drawerProblemTitle = document.getElementById('drawerProblemTitle');
+const drawerProblemBody = document.getElementById('drawerProblemBody');
+const drawerToggleBtn = document.getElementById('drawerToggleBtn');
+const proctorTimerEl = document.getElementById('proctorTimer');
+const proctorProblemTitleEl = document.getElementById('proctorProblemTitle');
+const strikeCounterEl = document.getElementById('strikeCounter');
+const proctorChangeQBtn = document.getElementById('proctorChangeQBtn');
+const proctorEndTestBtn = document.getElementById('proctorEndTestBtn');
+const problemPickerModal = document.getElementById('problemPickerModal');
+const closeProblemPickerBtn = document.getElementById('closeProblemPickerBtn');
+const problemListContainer = document.getElementById('problemListContainer');
+const testSummaryModal = document.getElementById('testSummaryModal');
+const testSummaryBody = document.getElementById('testSummaryBody');
+const confirmExitInterviewBtn = document.getElementById('confirmExitInterviewBtn');
+const antiCheatAlert = document.getElementById('antiCheatAlert');
+const alertTitleEl = document.getElementById('alertTitle');
+const alertMsgEl = document.getElementById('alertMsg');
+
+// Enter Placement / Interview Mode
+function enterPlacementMode(problem = INTERVIEW_PROBLEMS[0]) {
+  isPlacementMode = true;
+  currentProblem = problem;
+  strikeCount = 0;
+  proctorTimeRemainingSeconds = problem.timeMinutes * 60;
+  testStartTime = new Date();
+
+  // 1. Enter Fullscreen
+  try {
+    if (document.documentElement.requestFullscreen) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    }
+  } catch (e) {}
+
+  // 2. Adjust Body and UI to Placement Mode
+  document.body.classList.add('placement-mode');
+  if (proctorBanner) proctorBanner.style.display = 'flex';
+  if (problemDrawer) problemDrawer.style.display = 'block';
+
+  // 3. Set Problem Details
+  if (proctorProblemTitleEl) proctorProblemTitleEl.textContent = 'Problem: ' + problem.title;
+  if (drawerProblemTitle) drawerProblemTitle.textContent = `${problem.title} (${problem.difficulty.toUpperCase()} · ${problem.timeMinutes} Mins)`;
+  if (drawerProblemBody) drawerProblemBody.innerHTML = problem.description;
+  if (strikeCounterEl) {
+    strikeCounterEl.textContent = `⚠️ Tab Switches: 0/${MAX_STRIKES}`;
+    strikeCounterEl.style.color = '#34d399';
+  }
+
+  // 4. Configure Editor: "Google Docs Style" (Zero Autocomplete, No Auto-closing Brackets, Raw Typing)
+  if (editor) {
+    editor.updateOptions({
+      quickSuggestions: false,
+      suggestOnTriggerCharacters: false,
+      snippetSuggestions: 'none',
+      wordBasedSuggestions: 'off',
+      parameterHints: { enabled: false },
+      autoClosingBrackets: 'never',
+      autoClosingQuotes: 'never',
+      autoClosingOvertype: 'never',
+      autoSurround: 'never',
+      autoIndent: 'none',
+      formatOnType: false,
+      formatOnPaste: false,
+      minimap: { enabled: false },
+      glyphMargin: false,
+      hover: { enabled: false }
+    });
+
+    // Load problem template code
+    activeFileName = 'interview_solution.cpp';
+    if (problem.starterCode.includes('def ')) activeFileName = 'interview_solution.py';
+    projectFiles[activeFileName] = problem.starterCode;
+    editor.setValue(problem.starterCode);
+  }
+
+  // 5. Start Proctor Timer
+  clearInterval(proctorTimerInterval);
+  proctorTimerInterval = setInterval(updateProctorTimer, 1000);
+  updateProctorTimer();
+
+  // 6. Show Welcome Warning Alert
+  showAntiCheatToast('PROCTORED INTERVIEW STARTED', 'Full screen active. Raw Google Docs mode enabled: No auto-complete or auto-brackets. Do not switch tabs.');
+}
+
+function updateProctorTimer() {
+  if (!isPlacementMode) return;
+  if (proctorTimeRemainingSeconds <= 0) {
+    clearInterval(proctorTimerInterval);
+    endInterviewTest('Time is up! Your interview test has concluded.');
+    return;
+  }
+  proctorTimeRemainingSeconds--;
+  const m = Math.floor(proctorTimeRemainingSeconds / 60);
+  const s = proctorTimeRemainingSeconds % 60;
+  if (proctorTimerEl) {
+    proctorTimerEl.textContent = `⏳ ${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    if (proctorTimeRemainingSeconds < 300) {
+      proctorTimerEl.style.color = '#ef4444';
+    } else {
+      proctorTimerEl.style.color = '#fbbf24';
+    }
+  }
+}
+
+function showAntiCheatToast(title, message) {
+  if (!antiCheatAlert) return;
+  if (alertTitleEl) alertTitleEl.textContent = title;
+  if (alertMsgEl) alertMsgEl.textContent = message;
+  antiCheatAlert.style.display = 'flex';
+  setTimeout(() => {
+    antiCheatAlert.style.display = 'none';
+  }, 4500);
+}
+
+// Anti-Cheat: Tab switch & Window blur detection
+function handleProctorViolation(reason) {
+  if (!isPlacementMode) return;
+  strikeCount++;
+
+  if (strikeCounterEl) {
+    strikeCounterEl.textContent = `⚠️ Tab Switches: ${strikeCount}/${MAX_STRIKES}`;
+    strikeCounterEl.style.color = strikeCount >= 2 ? '#ef4444' : '#f59e0b';
+  }
+
+  showAntiCheatToast('STRIKE RECORDED!', `${reason} (Warning ${strikeCount}/${MAX_STRIKES}). Tab switches are strictly logged in interview mode.`);
+
+  if (strikeCount >= MAX_STRIKES) {
+    endInterviewTest(`Maximum violation limit reached (${MAX_STRIKES} tab switches). Test automatically locked and submitted.`);
+  }
+}
+
+window.addEventListener('blur', () => {
+  if (isPlacementMode) {
+    handleProctorViolation('Focus lost / Window blur detected');
+  }
+});
+
+document.addEventListener('visibilitychange', () => {
+  if (isPlacementMode && document.visibilityState === 'hidden') {
+    handleProctorViolation('Tab switched / Hidden tab detected');
+  }
+});
+
+// Anti-Cheat: Prevent Cut, Copy, Paste, and Context Menu in Placement Mode
+window.addEventListener('paste', (e) => {
+  if (isPlacementMode) {
+    e.preventDefault();
+    showAntiCheatToast('COPY/PASTE RESTRICTED', 'External pasting is blocked in Interview Placement Mode. Type your solution directly.');
+  }
+}, true);
+
+window.addEventListener('contextmenu', (e) => {
+  if (isPlacementMode) {
+    e.preventDefault();
+  }
+});
+
+// End Test Dialog & Exit
+function endInterviewTest(reason = 'Candidate manually ended the test.') {
+  clearInterval(proctorTimerInterval);
+
+  const durationMin = Math.max(1, Math.round(((new Date()) - testStartTime) / 60000));
+  const currentCode = editor ? editor.getValue() : '';
+  const lineCount = currentCode.split('\n').length;
+
+  if (testSummaryBody) {
+    testSummaryBody.innerHTML = `
+      <div style="background: #0d1117; padding: 14px; border-radius: 8px; border: 1px solid #30363d; margin-bottom: 15px;">
+        <p style="margin: 0 0 8px 0; color: #58a6ff; font-weight: 600;">Interview Assessment Report</p>
+        <p style="margin: 4px 0; font-size: 13px; color: #cbd5e1;"><strong>Problem:</strong> ${currentProblem.title}</p>
+        <p style="margin: 4px 0; font-size: 13px; color: #cbd5e1;"><strong>Time Elapsed:</strong> ${durationMin} minute(s)</p>
+        <p style="margin: 4px 0; font-size: 13px; color: #cbd5e1;"><strong>Lines of Code Written:</strong> ${lineCount} lines</p>
+        <p style="margin: 4px 0; font-size: 13px; color: ${strikeCount > 0 ? '#f87171' : '#34d399'};">
+          <strong>Integrity Violations:</strong> ${strikeCount} violation(s) recorded
+        </p>
+        <p style="margin: 8px 0 0 0; font-size: 12px; color: #8b949e;"><em>${reason}</em></p>
+      </div>
+      <p style="font-size: 13px; color: #94a3b8; margin: 0;">
+        Your solution has been preserved in the editor. You can now return to the standard IDE with regular auto-completion and toolbars.
+      </p>
+    `;
+  }
+
+  if (testSummaryModal) testSummaryModal.style.display = 'flex';
+}
+
+function exitPlacementMode() {
+  isPlacementMode = false;
+  clearInterval(proctorTimerInterval);
+  document.body.classList.remove('placement-mode');
+
+  if (proctorBanner) proctorBanner.style.display = 'none';
+  if (problemDrawer) problemDrawer.style.display = 'none';
+  if (testSummaryModal) testSummaryModal.style.display = 'none';
+
+  // Restore regular Monaco Editor superpowers
+  if (editor) {
+    editor.updateOptions({
+      quickSuggestions: true,
+      suggestOnTriggerCharacters: true,
+      snippetSuggestions: 'inline',
+      wordBasedSuggestions: 'matchingDocuments',
+      parameterHints: { enabled: true },
+      autoClosingBrackets: 'always',
+      autoClosingQuotes: 'always',
+      autoClosingOvertype: 'always',
+      autoSurround: 'languageDefined',
+      autoIndent: 'full',
+      formatOnType: true,
+      formatOnPaste: true,
+      minimap: { enabled: false },
+      glyphMargin: true,
+      hover: { enabled: true }
+    });
+  }
+
+  // Exit fullscreen if active
+  try {
+    if (document.fullscreenElement && document.exitFullscreen) {
+      document.exitFullscreen().catch(() => {});
+    }
+  } catch (e) {}
+}
+
+// Problem Picker UI Populate
+function renderProblemPickerList() {
+  if (!problemListContainer) return;
+  problemListContainer.innerHTML = '';
+
+  for (const prob of INTERVIEW_PROBLEMS) {
+    const card = document.createElement('div');
+    card.className = 'problem-card-item';
+    card.innerHTML = `
+      <div class="problem-card-top">
+        <span class="problem-card-title">${escapeHtml(prob.title)}</span>
+        <span class="diff-badge ${prob.difficulty}">${prob.difficulty} · ${prob.timeMinutes}m</span>
+      </div>
+      <div class="problem-card-desc">${prob.description.replace(/<[^>]*>/g, '').slice(0, 110)}…</div>
+    `;
+    card.addEventListener('click', () => {
+      if (problemPickerModal) problemPickerModal.style.display = 'none';
+      enterPlacementMode(prob);
+    });
+    problemListContainer.appendChild(card);
+  }
+}
+
+placementModeBtn?.addEventListener('click', () => {
+  renderProblemPickerList();
+  if (problemPickerModal) problemPickerModal.style.display = 'flex';
+});
+
+closeProblemPickerBtn?.addEventListener('click', () => {
+  if (problemPickerModal) problemPickerModal.style.display = 'none';
+});
+
+proctorChangeQBtn?.addEventListener('click', () => {
+  renderProblemPickerList();
+  if (problemPickerModal) problemPickerModal.style.display = 'flex';
+});
+
+proctorEndTestBtn?.addEventListener('click', () => {
+  const confirmed = confirm('Are you sure you want to end and submit your interview test?');
+  if (confirmed) {
+    endInterviewTest('Candidate clicked End Test & Submit.');
+  }
+});
+
+confirmExitInterviewBtn?.addEventListener('click', exitPlacementMode);
+
+drawerToggleBtn?.addEventListener('click', () => {
+  if (drawerProblemBody.style.display === 'none') {
+    drawerProblemBody.style.display = 'block';
+    drawerToggleBtn.textContent = 'Hide Details ▴';
+  } else {
+    drawerProblemBody.style.display = 'none';
+    drawerToggleBtn.textContent = 'Show Details ▾';
+  }
+});

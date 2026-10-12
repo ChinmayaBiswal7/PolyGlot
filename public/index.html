@@ -89,6 +89,9 @@
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
             <span id="shareText">Share</span>
           </button>
+          <button class="placement-mode-btn" id="placementModeBtn" title="Enter Strict Interview / Placement Mode">
+            <span class="placement-icon">🎯</span> Interview Mode
+          </button>
           <button class="run-btn" id="runBtn">
             <span class="run-icon">▶</span> Run
           </button>
@@ -198,6 +201,65 @@
 
     </main>
 
+  </div>
+
+  <!-- Placement / Interview Strict Mode Proctored Overlay & UI -->
+  <div class="interview-proctor-banner" id="interviewProctorBanner" style="display: none;">
+    <div class="banner-left">
+      <span class="proctor-badge">🔴 PROCTORED INTERVIEW</span>
+      <span class="proctor-timer" id="proctorTimer">⏳ 45:00</span>
+      <span class="proctor-divider">|</span>
+      <span class="proctor-problem-title" id="proctorProblemTitle">Problem: Reverse Linked List</span>
+    </div>
+    <div class="banner-center">
+      <span class="strike-counter" id="strikeCounter">⚠️ Tab Switches: 0/3</span>
+    </div>
+    <div class="banner-right">
+      <button class="proctor-q-btn" id="proctorChangeQBtn">📋 Change Problem</button>
+      <button class="proctor-end-btn" id="proctorEndTestBtn">🏁 End Test & Submit</button>
+    </div>
+  </div>
+
+  <!-- Problem Description Panel in Placement Mode -->
+  <div class="interview-problem-drawer" id="interviewProblemDrawer" style="display: none;">
+    <div class="drawer-header">
+      <div class="drawer-title" id="drawerProblemTitle">Problem Statement</div>
+      <button class="drawer-close-btn" id="drawerToggleBtn">Hide Details ▴</button>
+    </div>
+    <div class="drawer-body" id="drawerProblemBody"></div>
+  </div>
+
+  <!-- Problem Picker Modal -->
+  <div class="interview-modal-backdrop" id="problemPickerModal" style="display: none;">
+    <div class="interview-modal">
+      <div class="interview-modal-header">
+        <h3>🎯 Select Interview / Placement Problem</h3>
+        <button class="modal-close-icon" id="closeProblemPickerBtn">×</button>
+      </div>
+      <div class="interview-modal-body" id="problemListContainer"></div>
+    </div>
+  </div>
+
+  <!-- Test Summary / End Modal -->
+  <div class="interview-modal-backdrop" id="testSummaryModal" style="display: none;">
+    <div class="interview-modal summary-modal">
+      <div class="interview-modal-header">
+        <h3>🎉 Interview Submission Summary</h3>
+      </div>
+      <div class="interview-modal-body" id="testSummaryBody"></div>
+      <div class="interview-modal-footer">
+        <button class="exit-interview-btn" id="confirmExitInterviewBtn">Return to Standard IDE</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Anti-Cheat Warning Toast -->
+  <div class="anti-cheat-alert" id="antiCheatAlert" style="display: none;">
+    <div class="alert-icon">⚠️</div>
+    <div class="alert-content">
+      <strong id="alertTitle">PROCTOR WARNING</strong>
+      <p id="alertMsg">Window focus lost! Switching tabs/windows is forbidden during the test.</p>
+    </div>
   </div>
 
   <!-- Socket.io and Monaco -->
