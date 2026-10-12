@@ -347,7 +347,8 @@ async function executeC(code) {
   const out = path.join(TEMP_DIR, isWin ? 'temp_c.exe' : 'temp_c');
   fs.writeFileSync(src, wrapped, 'utf8');
 
-  const compile = await run(`gcc "${src}" -o "${out}"`);
+  // -O0 for fastest compilation time without optimization
+  const compile = await run(`gcc -O0 "${src}" -o "${out}"`);
   if (compile.exitCode) return { output: '', error: compile.stderr.trim() };
 
   const r = await run(`"${out}"`);
@@ -361,7 +362,8 @@ async function executeCpp(code) {
   const out = path.join(TEMP_DIR, isWin ? 'temp_cpp.exe' : 'temp_cpp');
   fs.writeFileSync(src, wrapped, 'utf8');
 
-  const compile = await run(`g++ "${src}" -o "${out}"`);
+  // -O0 for fastest compilation time
+  const compile = await run(`g++ -O0 "${src}" -o "${out}"`);
   if (compile.exitCode) return { output: '', error: compile.stderr.trim() };
 
   const r = await run(`"${out}"`);
@@ -373,10 +375,11 @@ async function executeJava(code) {
   const file = path.join(TEMP_DIR, 'PolyTemp.java');
   fs.writeFileSync(file, wrapped, 'utf8');
 
-  const compile = await run(`javac -encoding UTF-8 "${file}"`);
+  // Fast compilation with minimal JVM overhead
+  const compile = await run(`javac -J-Xms32m -J-Xmx128m -encoding UTF-8 "${file}"`);
   if (compile.exitCode) return { output: '', error: compile.stderr.trim() };
 
-  const r = await run(`java -Dfile.encoding=UTF-8 -cp "${TEMP_DIR}" PolyTemp`);
+  const r = await run(`java -Xms32m -Xmx128m -Dfile.encoding=UTF-8 -cp "${TEMP_DIR}" PolyTemp`);
   return { output: r.stdout.trim(), error: r.exitCode ? r.stderr.trim() : null };
 }
 
@@ -395,9 +398,10 @@ async function executeRust(code) {
   const out = path.join(TEMP_DIR, isWin ? 'temp_rs.exe' : 'temp_rs');
   fs.writeFileSync(src, wrapped, 'utf8');
 
+  // -C opt-level=0 for instant Rust compilation
   const rustcCmd = isWin
-    ? `"C:\\Program Files\\Rust stable GNU 1.99\\bin\\rustc.exe" --sysroot "C:\\Program Files\\Rust stable GNU 1.99" -C link-self-contained=yes "${src}" -o "${out}"`
-    : `rustc "${src}" -o "${out}"`;
+    ? `"C:\\Program Files\\Rust stable GNU 1.99\\bin\\rustc.exe" -C opt-level=0 --sysroot "C:\\Program Files\\Rust stable GNU 1.99" -C link-self-contained=yes "${src}" -o "${out}"`
+    : `rustc -C opt-level=0 "${src}" -o "${out}"`;
 
   const compile = await run(rustcCmd);
   if (compile.exitCode) return { output: '', error: compile.stderr.trim() };
