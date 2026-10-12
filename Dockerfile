@@ -4,7 +4,7 @@ FROM node:20-bookworm-slim
 # Set environment
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONIOENCODING=utf-8
-ENV PORT=7860
+ENV PORT=10000
 
 # Install all compilers & language runtimes:
 # - python3
@@ -22,25 +22,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Create user with user ID 1000 (recommended for Hugging Face security permissions)
-RUN useradd -m -u 1000 user
-USER user
-ENV HOME=/home/user \
-    PATH=/home/user/.local/bin:$PATH
-
-WORKDIR /home/user/app
+WORKDIR /app
 
 # Copy package files and install dependencies
-COPY --chown=user package*.json ./
+COPY package*.json ./
 RUN npm install --production
 
 # Copy entire application (Frontend + Backend)
-COPY --chown=user server.js ./
-COPY --chown=user src ./src
-COPY --chown=user public ./public
+COPY server.js ./
+COPY src ./src
+COPY public ./public
 
-# Expose standard Hugging Face port 7860
-EXPOSE 7860
+# Expose Render default port
+EXPOSE 10000
 
 # Start unified server
 CMD ["node", "server.js"]
