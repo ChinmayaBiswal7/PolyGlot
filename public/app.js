@@ -215,8 +215,11 @@ require(['vs/editor/editor.main'], function () {
     const val = editor.getValue();
     projectFiles[activeFileName] = val;
 
-    // If currently on Web Preview tab, auto-refresh preview
-    if (tabWebPreviewBtn?.classList.contains('active') || activeFileName.endsWith('.html')) {
+    // If currently on Web Preview tab, or editing web files (.html, .css, .js), auto-refresh preview
+    if (tabWebPreviewBtn?.classList.contains('active') ||
+        activeFileName.endsWith('.html') ||
+        activeFileName.endsWith('.css') ||
+        activeFileName.endsWith('.js')) {
       renderWebPreview();
     }
 
@@ -699,6 +702,32 @@ function renderWebPreview() {
 </body>
 </html>`;
   }
+
+  // Automatically resolve and inject any linked project CSS (<link rel="stylesheet" href="...">)
+  htmlContent = htmlContent.replace(/<link\s+[^>]*rel=["']stylesheet["'][^>]*href=["']([^"']+)["'][^>]*>/gi, (match, href) => {
+    // Clean relative path (e.g., "style.css", "./style.css", "css/style.css")
+    const cleanHref = href.replace(/^\.\//, '').trim();
+    // Check if file exists in projectFiles directly or relative to web folder
+    const targetPath = projectFiles[cleanHref] ? cleanHref :
+                       projectFiles['web/' + cleanHref] ? ('web/' + cleanHref) : null;
+    if (targetPath && projectFiles[targetPath]) {
+      return `<style>/* Injected from ${targetPath} */\n${projectFiles[targetPath]}\n</style>`;
+    }
+    return match;
+  });
+
+  // Automatically resolve and inject any linked project JS (<script src="..."></script>)
+  htmlContent = htmlContent.replace(/<script\s+[^>]*src=["']([^"']+)["'][^>]*>\s*<\/script>/gi, (match, src) => {
+    // If it's an external CDN (e.g. cdn.jsdelivr.net or http://), leave as is
+    if (/^(https?:)?\/\//i.test(src)) return match;
+    const cleanSrc = src.replace(/^\.\//, '').trim();
+    const targetPath = projectFiles[cleanSrc] ? cleanSrc :
+                       projectFiles['web/' + cleanSrc] ? ('web/' + cleanSrc) : null;
+    if (targetPath && projectFiles[targetPath]) {
+      return `<script>/* Injected from ${targetPath} */\n${projectFiles[targetPath]}\n</script>`;
+    }
+    return match;
+  });
 
   if (urlBar) urlBar.textContent = url;
 
